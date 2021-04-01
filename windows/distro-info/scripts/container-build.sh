@@ -89,7 +89,7 @@ source "${container_app_functions_script_path}"
 
 if [ ! -z "#{DEBUG}" ]
 then
-  echo $@
+  echo "$@"
 fi
 
 WITH_STRIP="y"
@@ -97,6 +97,8 @@ WITH_PDF="y"
 WITH_HTML="n"
 IS_DEVELOP=""
 IS_DEBUG=""
+WITH_TESTS="y"
+LINUX_INSTALL_RELATIVE_PATH=""
 
 if [ "$(uname)" == "Linux" ]
 then
@@ -115,6 +117,11 @@ do
 
     --disable-strip)
       WITH_STRIP="n"
+      shift
+      ;;
+
+    --disable-tests)
+      WITH_TESTS="n"
       shift
       ;;
 
@@ -153,6 +160,11 @@ do
       shift
       ;;
 
+    --linux-install-relative-path)
+      LINUX_INSTALL_RELATIVE_PATH="$2"
+      shift 2
+      ;;
+
     *)
       echo "Unknown action/option $1"
       exit 1
@@ -182,8 +194,6 @@ prepare_xbb_extras
 echo
 echo "Here we go..."
 echo
-
-# -----------------------------------------------------------------------------
 
 build_versions
 

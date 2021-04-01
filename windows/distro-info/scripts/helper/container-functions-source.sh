@@ -83,7 +83,7 @@ function detect_container()
     elif [ "${CONTAINER_MACHINE}" == "i686" ]
     then
       CONTAINER_BITS="32"
-      CONTAINER_NODE_ARCH="x32"
+      CONTAINER_NODE_ARCH="ia32"
     elif [ "${CONTAINER_MACHINE}" == "aarch64" ]
     then
       CONTAINER_BITS="64"

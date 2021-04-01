@@ -214,7 +214,8 @@ function build_gmp()
 
       # Exceptions used by Arm GCC script.
       CPPFLAGS="${XBB_CPPFLAGS} -fexceptions"
-      CFLAGS="${XBB_CFLAGS_NO_W}"
+      # Test fail with -Ofast, revert to -O2
+      CFLAGS="${XBB_CFLAGS_NO_W}" 
       CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
       LDFLAGS="${XBB_LDFLAGS_LIB}"
       if [ "${TARGET_PLATFORM}" == "linux" ]
@@ -233,7 +234,7 @@ function build_gmp()
 
       # ABI is mandatory, otherwise configure fails on 32-bit.
       # (see https://gmplib.org/manual/ABI-and-ISA.html)
-      if [ "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" ]
+      if [ "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" ]
       then
         export ABI="${TARGET_BITS}"
       fi
@@ -271,7 +272,15 @@ function build_gmp()
 
           run_verbose bash ${DEBUG} "${SOURCES_FOLDER_PATH}/${gmp_src_folder_name}/configure" \
             ${config_options[@]}
-            
+
+          if [ "${TARGET_PLATFORM}" == "darwin" ] # and clang
+          then
+            # Disable failing `t-sqrlo` test.
+            run_verbose sed -i.bak \
+              -e 's| t-sqrlo$(EXEEXT) | |' \
+              "tests/mpn/Makefile"
+          fi
+
           cp "config.log" "${LOGS_FOLDER_PATH}/${gmp_folder_name}/config-log.txt"
         ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${gmp_folder_name}/configure-output.txt"
       fi
@@ -648,7 +657,7 @@ function build_isl()
         if [ "${WITH_TESTS}" == "y" ]
         then
           if [ "${TARGET_PLATFORM}" == "linux" -a \
-            \( "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" \) ] 
+            \( "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" \) ] 
           then
             # /Host/Users/ilg/Work/gcc-8.4.0-1/linux-x64/build/libs/isl-0.22/.libs/lt-isl_test_cpp: relocation error: /Host/Users/ilg/Work/gcc-8.4.0-1/linux-x64/build/libs/isl-0.22/.libs/lt-isl_test_cpp: symbol _ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm, version GLIBCXX_3.4.21 not defined in file libstdc++.so.6 with link time reference
             # FAIL isl_test_cpp (exit status: 127)
@@ -956,8 +965,8 @@ function build_libiconv()
 function build_ncurses()
 {
   # https://invisible-island.net/ncurses/
-  # ftp://ftp.invisible-island.net/pub/ncurses
-  # ftp://ftp.invisible-island.net/pub/ncurses/ncurses-6.2.tar.gz
+  # https://invisible-mirror.net/archives/ncurses/
+  # https://invisible-mirror.net/archives/ncurses/ncurses-6.2.tar.gz
 
   # depends=(glibc gcc-libs)
   # https://archlinuxarm.org/packages/aarch64/ncurses/files/PKGBUILD
@@ -982,7 +991,7 @@ function build_ncurses()
   local ncurses_src_folder_name="ncurses-${ncurses_version}"
 
   local ncurses_archive="${ncurses_src_folder_name}.tar.gz"
-  local ncurses_url="ftp://ftp.invisible-island.net//pub/ncurses/${ncurses_archive}"
+  local ncurses_url="https://invisible-mirror.net/archives/ncurses/${ncurses_archive}"
 
   # The folder name  for build, licenses, etc.
   local ncurses_folder_name="${ncurses_src_folder_name}"
@@ -1454,6 +1463,8 @@ function build_libelf()
   # 26 Nov 2019, 0.178
   # 2020-03-30, 0.179
   # 2020-06-11, 0.180
+  # 2020-09-08, 0.181
+  # 2020-10-31, 0.182
 
   local libelf_version="$1"
 
@@ -2066,12 +2077,8 @@ function build_libmpdec()
         # Build.
         run_verbose make -j ${JOBS}
 
-        if [ "${WITH_STRIP}" == "y" ]
-        then
-          run_verbose make install-strip
-        else
-          run_verbose make install
-        fi
+        # Has no install-strip
+        run_verbose make install
 
         if [ "${WITH_TESTS}" == "y" ]
         then
@@ -3332,7 +3339,13 @@ function test_python3()
     echo "Checking the python3 binary shared libraries..."
 
     show_libs "${LIBS_INSTALL_FOLDER_PATH}/bin/python3.${PYTHON3_VERSION_MINOR}"
-    show_libs "${LIBS_INSTALL_FOLDER_PATH}/lib/libpython${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}m.${SHLIB_EXT}"
+    if [ -f "${LIBS_INSTALL_FOLDER_PATH}/lib/libpython${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}m.${SHLIB_EXT}" ]
+    then
+      show_libs "${LIBS_INSTALL_FOLDER_PATH}/lib/libpython${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}m.${SHLIB_EXT}"
+    elif [ -f "${LIBS_INSTALL_FOLDER_PATH}/lib/libpython${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}.${SHLIB_EXT}" ]
+    then
+      show_libs "${LIBS_INSTALL_FOLDER_PATH}/lib/libpython${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}.${SHLIB_EXT}"
+    fi
 
     echo
     echo "Testing if the python3 binary starts properly..."
@@ -3416,6 +3429,794 @@ function download_python3_win()
 
     download_and_extract "${python3_url}" "${python3_archive}" \
       "${PYTHON3_SRC_FOLDER_NAME}"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+
+# Used by gdb-py3 on Windows. The default paths on Windows are different
+# from POSIX.
+function add_python3_win_syslibs()
+{
+  if [ "${TARGET_PLATFORM}" == "win32" ]
+  then
+    echo
+    echo "Copying .pyd & .dll files from the embedded Python distribution..."
+    mkdir -pv "${APP_PREFIX}/bin"
+    cp -v "${SOURCES_FOLDER_PATH}/${PYTHON3_WIN_SRC_FOLDER_NAME}/python37.zip"\
+      "${APP_PREFIX}/bin"
+
+    mkdir -pv "${APP_PREFIX}/bin/DLLs"
+    cp -v "${SOURCES_FOLDER_PATH}/${PYTHON3_WIN_SRC_FOLDER_NAME}"/*.pyd \
+      "${APP_PREFIX}/bin/DLLs"
+    cp -v "${SOURCES_FOLDER_PATH}/${PYTHON3_WIN_SRC_FOLDER_NAME}"/*.dll \
+      "${APP_PREFIX}/bin/DLLs"
+  fi
+}
+
+# Used by gdb-py3 on POSIX and by packages with full
+# control over path (like meson) on all platforms.
+function add_python3_syslibs()
+{
+  local python_with_version="python${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}"
+  if [ ! -d "${APP_PREFIX}/lib/${python_with_version}/" ]
+  then
+    (
+      mkdir -pv "${APP_PREFIX}/lib/${python_with_version}/"
+
+      (
+        echo
+        echo "Copying .py files from the standard Python library..."
+
+        # Copy all .py from the original source package.
+        cp -r "${SOURCES_FOLDER_PATH}/${PYTHON3_SRC_FOLDER_NAME}"/Lib/* \
+          "${APP_PREFIX}/lib/${python_with_version}/"
+
+        echo "Compiling all python sources..."
+        if [ "${TARGET_PLATFORM}" == "win32" ]
+        then
+          run_verbose "${WORK_FOLDER_PATH}/${LINUX_INSTALL_RELATIVE_PATH}/libs/bin/python3.${PYTHON3_VERSION_MINOR}" \
+            -m compileall \
+            -j "${JOBS}" \
+            -f "${APP_PREFIX}/lib/${python_with_version}/" \
+            || true
+        else
+          # Compiling tests fails, ignore the errors.
+          run_verbose "${LIBS_INSTALL_FOLDER_PATH}/bin/python3.${PYTHON3_VERSION_MINOR}" \
+            -m compileall \
+            -j "${JOBS}" \
+            -f "${APP_PREFIX}/lib/${python_with_version}/" \
+            || true
+        fi
+
+        # For just in case.
+        find "${APP_PREFIX}/lib/${python_with_version}/" \
+          \( -name '*.opt-1.pyc' -o -name '*.opt-2.pyc' \) \
+          -exec rm -v {} \;
+      )
+
+      echo "Replacing .py files with .pyc files..."
+      move_pyc "${APP_PREFIX}/lib/${python_with_version}"
+
+      mkdir -pv "${APP_PREFIX}/lib/${python_with_version}/lib-dynload/"
+
+      echo
+      echo "Copying Python shared libraries..."
+
+      if [ "${TARGET_PLATFORM}" == "win32" ]
+      then
+        # Copy the Windows specific DLLs (.pyd) to the separate folder;
+        # they are dynamically loaded by Python.
+        cp -v "${SOURCES_FOLDER_PATH}/${PYTHON3_WIN_SRC_FOLDER_NAME}"/*.pyd \
+          "${APP_PREFIX}/lib/${python_with_version}/lib-dynload/"
+        # Copy the usual DLLs too; the python*.dll are used, do not remove them.
+        cp -v "${SOURCES_FOLDER_PATH}/${PYTHON3_WIN_SRC_FOLDER_NAME}"/*.dll \
+          "${APP_PREFIX}/lib/${python_with_version}/lib-dynload/"
+      else
+        # Copy dynamically loaded modules and rename folder.
+        cp -rv "${LIBS_INSTALL_FOLDER_PATH}/lib/python${PYTHON3_VERSION_MAJOR}.${PYTHON3_VERSION_MINOR}"/lib-dynload/* \
+          "${APP_PREFIX}/lib/${python_with_version}/lib-dynload/"
+      fi
+    )
+  fi
+}
+
+function process_pyc()
+{
+  local file_path="$1"
+
+  # echo bbb "${file_path}"
+
+  local file_full_name="$(basename "${file_path}")"
+  local file_name="$(echo "${file_full_name}" | sed -e 's|\.cpython-[0-9]*\.pyc||')"
+  local folder_path="$(dirname $(dirname "${file_path}"))"
+
+  # echo "${folder_path}" "${file_name}"
+
+  if [ -f "${folder_path}/${file_name}.py" ] 
+  then
+    mv "${file_path}" "${folder_path}/${file_name}.pyc"
+    rm "${folder_path}/${file_name}.py"
+  fi
+}
+
+export -f process_pyc
+
+function process_pycache()
+{
+  local folder_path="$1"
+
+  find ${folder_path} -name '*.pyc' -type f -print0 | xargs -0 -L 1 -I {} bash -c 'process_pyc "{}"'
+
+  if [ $(ls -1 "${folder_path}" | wc -l) -eq 0 ]
+  then
+    rm -rf "${folder_path}"
+  fi
+}
+
+export -f process_pycache
+
+function move_pyc()
+{
+  local folder_path="$1"
+
+  find ${folder_path} -name '__pycache__' -type d -print0 | xargs -0 -L 1 -I {} bash -c 'process_pycache "{}"'
+}
+
+# -----------------------------------------------------------------------------
+
+function build_libpng() 
+{
+  # To ensure builds stability, use slightly older releases.
+  # https://sourceforge.net/projects/libpng/files/libpng16/
+  # https://sourceforge.net/projects/libpng/files/libpng16/older-releases/
+
+  # https://archlinuxarm.org/packages/aarch64/libpng/files/PKGBUILD
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=libpng-git
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=mingw-w64-libpng
+
+  # libpng_version="1.2.53"
+  # libpng_version="1.6.17"
+  # libpng_version="1.6.23" # 2016-06-09
+  # libpng_version="1.6.36" # 2018-12-01
+  # libpng_SFOLDER="libpng12"
+  # libpng_SFOLDER="libpng16"
+
+  local libpng_version="$1"
+  local libpng_major_minor_version="$(echo ${libpng_version} | sed -e 's|\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.[0-9].*|\1\2|')"
+
+  local libpng_src_folder_name="libpng-${libpng_version}"
+
+  local libpng_archive="${libpng_src_folder_name}.tar.xz"
+  # local libpng_url="https://sourceforge.net/projects/libpng/files/${libpng_SFOLDER}/older-releases/${libpng_version}/${libpng_archive}"
+  local libpng_url="https://sourceforge.net/projects/libpng/files/libpng${libpng_major_minor_version}/${libpng_version}/${libpng_archive}"
+
+  local libpng_folder_name="${libpng_src_folder_name}"
+  local libpng_stamp_file_path="${INSTALL_FOLDER_PATH}/stamp-libpng-${libpng_version}-installed"
+  if [ ! -f "${libpng_stamp_file_path}" ]
+  then
+
+    cd "${SOURCES_FOLDER_PATH}"
+
+    download_and_extract "${libpng_url}" "${libpng_archive}" \
+      "${libpng_src_folder_name}"
+
+    mkdir -pv "${LOGS_FOLDER_PATH}/${libpng_folder_name}"
+
+    (
+      mkdir -pv "${LIBS_BUILD_FOLDER_PATH}/${libpng_folder_name}"
+      cd "${LIBS_BUILD_FOLDER_PATH}/${libpng_folder_name}"
+
+      xbb_activate
+      xbb_activate_installed_dev
+
+      CPPFLAGS="${XBB_CPPFLAGS}"
+      CFLAGS="${XBB_CFLAGS_NO_W}"      
+      CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
+      LDFLAGS="${XBB_LDFLAGS_LIB}"
+      if [ "${TARGET_PLATFORM}" == "linux" ]
+      then
+        LDFLAGS+=" -Wl,-rpath,${LD_LIBRARY_PATH}"
+      fi      
+      if [ "${IS_DEVELOP}" == "y" ]
+      then
+        LDFLAGS+=" -v"
+      fi
+
+      export CPPFLAGS
+      export CFLAGS
+      export CXXFLAGS
+      export LDFLAGS
+
+      env | sort
+
+      if [ ! -f "config.status" ]
+      then 
+
+        (
+          echo
+          echo "Running libpng configure..."
+
+          bash "${SOURCES_FOLDER_PATH}/${libpng_src_folder_name}/configure" --help
+
+          config_options=()
+
+          config_options+=("--prefix=${LIBS_INSTALL_FOLDER_PATH}")
+            
+          config_options+=("--build=${BUILD}")
+          config_options+=("--host=${HOST}")
+          config_options+=("--target=${TARGET}")
+
+          # From Arch.
+          config_options+=("--enable-arm-neon=no")
+
+          run_verbose bash ${DEBUG} "${SOURCES_FOLDER_PATH}/${libpng_src_folder_name}/configure" \
+            ${config_options[@]}
+
+          cp "config.log" "${LOGS_FOLDER_PATH}/${libpng_folder_name}/config-log.txt"
+        ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${libpng_folder_name}/configure-output.txt"
+
+      fi
+
+      (
+        echo
+        echo "Running libpng make..."
+
+        # Build.
+        run_verbose make -j ${JOBS}
+
+        if [ "${WITH_STRIP}" == "y" ]
+        then
+          run_verbose make install-strip
+        else
+          run_verbose make install
+        fi
+
+      ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${libpng_folder_name}/make-output.txt"
+
+      copy_license \
+        "${SOURCES_FOLDER_PATH}/${libpng_src_folder_name}" \
+        "${libpng_folder_name}"
+
+    )
+
+    touch "${libpng_stamp_file_path}"
+
+  else
+    echo "Library libpng already installed."
+  fi
+}
+
+# See also
+# https://archlinuxarm.org/packages/aarch64/libjpeg-turbo/files/PKGBUILD
+
+function build_jpeg() 
+{
+  # http://www.ijg.org
+  # http://www.ijg.org/files/
+
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=libjpeg9
+
+  # jpeg_version="9a"
+  # jpeg_version="9b" # 2016-01-17
+
+  local jpeg_version="$1"
+
+  local jpeg_src_folder_name="jpeg-${jpeg_version}"
+
+  local jpeg_archive="jpegsrc.v${jpeg_version}.tar.gz"
+  local jpeg_url="http://www.ijg.org/files/${jpeg_archive}"
+
+  local jpeg_folder_name="${jpeg_src_folder_name}"
+  local jpeg_stamp_file_path="${INSTALL_FOLDER_PATH}/stamp-jpeg-${jpeg_version}-installed"
+  if [ ! -f "${jpeg_stamp_file_path}" ]
+  then
+
+    cd "${SOURCES_FOLDER_PATH}"
+
+    download_and_extract "${jpeg_url}" "${jpeg_archive}" \
+        "${jpeg_src_folder_name}"
+
+    mkdir -pv "${LOGS_FOLDER_PATH}/${jpeg_folder_name}"
+
+    (
+      mkdir -pv "${LIBS_BUILD_FOLDER_PATH}/${jpeg_folder_name}"
+      cd "${LIBS_BUILD_FOLDER_PATH}/${jpeg_folder_name}"
+
+      xbb_activate
+      xbb_activate_installed_dev
+
+      CPPFLAGS="${XBB_CPPFLAGS}"
+      CFLAGS="${XBB_CFLAGS_NO_W}"      
+      CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
+      LDFLAGS="${XBB_LDFLAGS_LIB}"
+      if [ "${TARGET_PLATFORM}" == "linux" ]
+      then
+        LDFLAGS+=" -Wl,-rpath,${LD_LIBRARY_PATH}"
+      fi      
+      if [ "${IS_DEVELOP}" == "y" ]
+      then
+        LDFLAGS+=" -v"
+      fi
+
+      export CPPFLAGS
+      export CFLAGS
+      export CXXFLAGS
+      export LDFLAGS
+
+      env | sort
+
+      if [ ! -f "config.status" ]
+      then 
+
+        (
+          echo
+          echo "Running jpeg configure..."
+
+          bash "${SOURCES_FOLDER_PATH}/${jpeg_src_folder_name}/configure" --help
+
+          config_options=()
+
+          config_options+=("--prefix=${LIBS_INSTALL_FOLDER_PATH}")
+            
+          config_options+=("--build=${BUILD}")
+          config_options+=("--host=${HOST}")
+          config_options+=("--target=${TARGET}")
+
+          # --enable-shared needed by sdl2_image on CentOS 64-bit and Ubuntu.
+          run_verbose bash ${DEBUG} "${SOURCES_FOLDER_PATH}/${jpeg_src_folder_name}/configure" \
+            ${config_options[@]}
+
+          cp "config.log" "${LOGS_FOLDER_PATH}/${jpeg_folder_name}/config-log.txt"
+        ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${jpeg_folder_name}/configure-output.txt"
+
+      fi
+
+      (
+        echo
+        echo "Running jpeg make..."
+
+        # Build.
+        run_verbose make -j ${JOBS}
+
+        if [ "${WITH_STRIP}" == "y" ]
+        then
+          run_verbose make install-strip
+        else
+          run_verbose make install
+        fi
+
+      ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${jpeg_folder_name}/make-output.txt"
+
+      copy_license \
+        "${SOURCES_FOLDER_PATH}/${jpeg_src_folder_name}" \
+        "${jpeg_folder_name}"
+    
+    )
+
+    touch "${jpeg_stamp_file_path}"
+
+  else
+    echo "Library jpeg already installed."
+  fi
+}
+
+function build_pixman() 
+{
+  # http://www.pixman.org
+  # http://cairographics.org/releases/
+
+  # https://archlinuxarm.org/packages/aarch64/pixman/files/PKGBUILD
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=pixman-git
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=mingw-w64-pixman
+
+  # pixman_version="0.32.6"
+  # pixman_version="0.34.0" # 2016-01-31
+  # pixman_version="0.38.0" # 2019-02-11
+
+  local pixman_version="$1"
+
+  local pixman_src_folder_name="pixman-${pixman_version}"
+
+  local pixman_archive="${pixman_src_folder_name}.tar.gz"
+  local pixman_url="http://cairographics.org/releases/${pixman_archive}"
+
+  local pixman_folder_name="${pixman_src_folder_name}"
+  local pixman_stamp_file_path="${INSTALL_FOLDER_PATH}/stamp-pixman-${pixman_version}-installed"
+  if [ ! -f "${pixman_stamp_file_path}" ]
+  then
+
+    cd "${SOURCES_FOLDER_PATH}"
+
+    download_and_extract "${pixman_url}" "${pixman_archive}" \
+      "${pixman_src_folder_name}"
+
+    mkdir -pv "${LOGS_FOLDER_PATH}/${pixman_folder_name}"
+
+    (
+      mkdir -pv "${LIBS_BUILD_FOLDER_PATH}/${pixman_folder_name}"
+      cd "${LIBS_BUILD_FOLDER_PATH}/${pixman_folder_name}"
+
+      # Windows libtool chaks for it.
+      mkdir -pv test/lib
+
+      xbb_activate
+      xbb_activate_installed_dev
+
+      CPPFLAGS="${XBB_CPPFLAGS}"
+      CFLAGS="${XBB_CFLAGS_NO_W}"      
+      CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
+      LDFLAGS="${XBB_LDFLAGS_LIB}"
+      if [ "${TARGET_PLATFORM}" == "linux" ]
+      then
+        LDFLAGS+=" -Wl,-rpath,${LD_LIBRARY_PATH}"
+      fi      
+      if [ "${IS_DEVELOP}" == "y" ]
+      then
+        LDFLAGS+=" -v"
+      fi
+
+      export CPPFLAGS
+      export CFLAGS
+      export CXXFLAGS
+      export LDFLAGS
+
+      env | sort
+
+      if [ ! -f "config.status" ]
+      then 
+
+        (
+          echo
+          echo "Running pixman configure..."
+
+          bash "${SOURCES_FOLDER_PATH}/${pixman_src_folder_name}/configure" --help
+
+          config_options=()
+
+          config_options+=("--prefix=${LIBS_INSTALL_FOLDER_PATH}")
+            
+          config_options+=("--build=${BUILD}")
+          config_options+=("--host=${HOST}")
+          config_options+=("--target=${TARGET}")
+
+          # config_options+=("--with-gnu-ld")
+
+          # The numerous disables were inspired from Arch, after the initial 
+          # failed on armhf.
+          config_options+=("--disable-static-testprogs")
+          config_options+=("--disable-loongson-mmi")
+          config_options+=("--disable-vmx")
+          config_options+=("--disable-arm-simd")
+          config_options+=("--disable-arm-neon")
+          config_options+=("--disable-arm-iwmmxt")
+          config_options+=("--disable-mmx")
+          config_options+=("--disable-sse2")
+          config_options+=("--disable-ssse3")
+          config_options+=("--disable-mips-dspr2")
+          config_options+=("--disable-gtk")
+
+          run_verbose bash ${DEBUG} "${SOURCES_FOLDER_PATH}/${pixman_src_folder_name}/configure" \
+            ${config_options[@]}
+
+          cp "config.log" "${LOGS_FOLDER_PATH}/${pixman_folder_name}/config-log.txt"
+        ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${pixman_folder_name}/configure-output.txt"
+
+      fi
+
+      (
+        echo
+        echo "Running pixman make..."
+
+        # Build.
+        run_verbose make -j ${JOBS}
+
+        if [ "${WITH_STRIP}" == "y" ]
+        then
+          run_verbose make install-strip
+        else
+          run_verbose make install
+        fi
+
+      ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${pixman_folder_name}/make-output.txt"
+
+      copy_license \
+        "${SOURCES_FOLDER_PATH}/${pixman_src_folder_name}" \
+        "${pixman_folder_name}"
+
+    )
+
+    touch "${pixman_stamp_file_path}"
+
+  else
+    echo "Library pixman already installed."
+  fi
+}
+
+# -----------------------------------------------------------------------------
+
+
+function build_glib() 
+{
+  # http://ftp.gnome.org/pub/GNOME/sources/glib
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=glib2-git
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=mingw-w64-glib2
+
+  # glib_MVERSION="2.44"
+  # glib_MVERSION="2.51" # 2016-10-24
+  # glib_version="${glib_MVERSION}.0"
+  # The last one without meson.
+  # glib_MVERSION="2.56" 
+  # glib_version="${glib_MVERSION}.3" # 2018-12-18
+  # 2.60
+
+  local glib_version="$1"
+
+  local glib_src_folder_name="glib-${glib_version}"
+
+  local glib_archive="${glib_src_folder_name}.tar.xz"
+  local glib_MAJOR_MINOR_version="$(echo ${glib_version} | sed -e 's|\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.[0-9].*|\1.\2|')"
+  local glib_url="http://ftp.gnome.org/pub/GNOME/sources/glib/${glib_MAJOR_MINOR_version}/${glib_archive}"
+
+  local glib_folder_name="${glib_src_folder_name}"
+  local glib_stamp_file_path="${INSTALL_FOLDER_PATH}/stamp-glib-${glib_version}-installed"
+  if [ ! -f "${glib_stamp_file_path}" ]
+  then
+
+    cd "${SOURCES_FOLDER_PATH}"
+
+    download_and_extract "${glib_url}" "${glib_archive}" \
+      "${glib_src_folder_name}"
+
+    mkdir -pv "${LOGS_FOLDER_PATH}/${glib_folder_name}"
+
+    (
+      # Hack, /gio/lib added because libtool needs it on Win32.
+      mkdir -pv "${LIBS_BUILD_FOLDER_PATH}/${glib_folder_name}"/gio/lib
+      cd "${LIBS_BUILD_FOLDER_PATH}/${glib_folder_name}"
+
+      xbb_activate
+      xbb_activate_installed_dev
+
+      CPPFLAGS="${XBB_CPPFLAGS}"
+      CFLAGS="${XBB_CFLAGS_NO_W}"      
+      CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
+      LDFLAGS="${XBB_LDFLAGS_LIB}"
+      if [ "${TARGET_PLATFORM}" == "linux" ]
+      then
+        LDFLAGS+=" -Wl,-rpath,${LD_LIBRARY_PATH}"
+      fi      
+      if [ "${IS_DEVELOP}" == "y" ]
+      then
+        LDFLAGS+=" -v"
+      fi
+
+      export CPPFLAGS
+      export CFLAGS
+      export CXXFLAGS
+      export LDFLAGS
+
+      if [ "${TARGET_PLATFORM}" == "darwin" ]
+      then
+        # GCC fails with
+        # error: unknown type name ‘dispatch_block_t
+        export CC=clang
+        export CXX=clang++
+      fi
+
+      env | sort
+
+      if [ ! -f "config.status" ]
+      then 
+
+        (
+          echo
+          echo "Running glib configure..."
+
+          bash "${SOURCES_FOLDER_PATH}/${glib_src_folder_name}/configure" --help
+
+          config_options=()
+
+          config_options+=("--prefix=${LIBS_INSTALL_FOLDER_PATH}")
+            
+          config_options+=("--build=${BUILD}")
+          config_options+=("--host=${HOST}")
+          config_options+=("--target=${TARGET}")
+
+          # --with-libiconv=gnu required on Linux
+          config_options+=("--with-libiconv=gnu")
+          config_options+=("--without-pcre")
+
+          config_options+=("--disable-selinux")
+          config_options+=("--disable-fam")
+          config_options+=("--disable-xattr")
+          config_options+=("--disable-libelf")
+          config_options+=("--disable-libmount")
+          config_options+=("--disable-dtrace")
+          config_options+=("--disable-systemtap")
+          config_options+=("--disable-coverage")
+          config_options+=("--disable-Bsymbolic")
+          config_options+=("--disable-znodelete")
+          config_options+=("--disable-compile-warnings")
+          config_options+=("--disable-installed-tests")
+          config_options+=("--disable-always-build-tests")
+
+          run_verbose bash ${DEBUG} "${SOURCES_FOLDER_PATH}/${glib_src_folder_name}/configure" \
+            ${config_options[@]}
+
+          # Disable SPLICE, it fails on CentOS.
+          local gsed_path=$(which gsed)
+          if [ ! -z "${gsed_path}" ]
+          then
+            run_verbose gsed -i -e '/#define HAVE_SPLICE 1/d' config.h
+          else
+            run_verbose sed -i -e '/#define HAVE_SPLICE 1/d' config.h
+          fi
+
+          cp "config.log" "${LOGS_FOLDER_PATH}/${glib_folder_name}/config-log.txt"
+        ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${glib_folder_name}/configure-output.txt"
+
+      fi
+
+      (
+        echo
+        echo "Running glib make..."
+
+        # Build.
+        run_verbose make # -j ${JOBS}
+
+        if [ "${WITH_STRIP}" == "y" ]
+        then
+          run_verbose make install-strip
+        else
+          run_verbose make install
+        fi
+
+      ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${glib_folder_name}/make-output.txt"
+
+      copy_license \
+        "${SOURCES_FOLDER_PATH}/${glib_src_folder_name}" \
+        "${glib_folder_name}"
+
+    )
+
+    touch "${glib_stamp_file_path}"
+
+  else
+    echo "Library glib already installed."
+  fi
+}
+
+# -----------------------------------------------------------------------------
+
+
+function build_libxml2() 
+{
+  # http://www.xmlsoft.org
+  # ftp://xmlsoft.org/libxml2/
+
+  # https://archlinuxarm.org/packages/aarch64/libxml2/files/PKGBUILD
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=libxml2-git
+  # https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=mingw-w64-libxml2
+
+  # 2018-03-05
+  # libxml2_version="2.9.8"
+
+  local libxml2_version="$1"
+
+  local libxml2_src_folder_name="libxml2-${libxml2_version}"
+
+  local libxml2_archive="${libxml2_src_folder_name}.tar.gz"
+  local libxml2_url="ftp://xmlsoft.org/libxml2/${libxml2_archive}"
+
+  local libxml2_folder_name="${libxml2_src_folder_name}"
+  local libxml2_stamp_file_path="${INSTALL_FOLDER_PATH}/stamp-libxml2-${libxml2_version}-installed"
+  if [ ! -f "${libxml2_stamp_file_path}" ]
+  then
+
+    cd "${SOURCES_FOLDER_PATH}"
+
+    download_and_extract "${libxml2_url}" "${libxml2_archive}" \
+      "${libxml2_src_folder_name}"
+
+    mkdir -pv "${LOGS_FOLDER_PATH}/${libxml2_folder_name}"
+
+    # Fails if not built in place.
+    if [ ! -d "${LIBS_BUILD_FOLDER_PATH}/${libxml2_folder_name}" ]
+    then
+      (
+        cp -r "${libxml2_src_folder_name}" \
+          "${LIBS_BUILD_FOLDER_PATH}/${libxml2_folder_name}"
+
+        cd "${LIBS_BUILD_FOLDER_PATH}/${libxml2_folder_name}"
+        xbb_activate
+        xbb_activate_installed_dev
+
+        autoreconf -vfi
+      )
+    fi
+
+    (
+      # /lib added due to wrong -Llib used during make.
+      mkdir -pv "${LIBS_BUILD_FOLDER_PATH}/${libxml2_folder_name}/lib"
+      cd "${LIBS_BUILD_FOLDER_PATH}/${libxml2_folder_name}"
+
+      xbb_activate
+      xbb_activate_installed_dev
+
+      CPPFLAGS="${XBB_CPPFLAGS}"
+      CFLAGS="${XBB_CFLAGS_NO_W}"      
+      CXXFLAGS="${XBB_CXXFLAGS_NO_W}"
+      LDFLAGS="${XBB_LDFLAGS_LIB}"
+      if [ "${TARGET_PLATFORM}" == "linux" ]
+      then
+        LDFLAGS+=" -Wl,-rpath,${LD_LIBRARY_PATH}"
+      fi      
+      if [ "${IS_DEVELOP}" == "y" ]
+      then
+        LDFLAGS+=" -v"
+      fi
+
+      export CPPFLAGS
+      export CFLAGS
+      export CXXFLAGS
+      export LDFLAGS
+
+      env | sort
+
+      if [ ! -f "config.status" ]
+      then 
+
+        (
+          echo
+          echo "Running libxml2 configure..."
+
+          bash "configure" --help
+
+          config_options=()
+
+          config_options+=("--prefix=${LIBS_INSTALL_FOLDER_PATH}")
+            
+          config_options+=("--build=${BUILD}")
+          config_options+=("--host=${HOST}")
+          config_options+=("--target=${TARGET}")
+
+          config_options+=("--without-python")
+
+          run_verbose bash ${DEBUG} "configure" \
+            ${config_options[@]}
+
+          cp "config.log" "${LOGS_FOLDER_PATH}/${libxml2_folder_name}/config-log.txt"
+        ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${libxml2_folder_name}/configure-output.txt"
+
+      fi
+
+      (
+        echo
+        echo "Running libxml2 make..."
+
+        # Build.
+        run_verbose make -j ${JOBS}
+
+        if [ "${WITH_STRIP}" == "y" ]
+        then
+          run_verbose make install-strip
+        else
+          run_verbose make install
+        fi
+
+      ) 2>&1 | tee "${LOGS_FOLDER_PATH}/${libxml2_folder_name}/make-output.txt"
+
+      copy_license \
+        "${SOURCES_FOLDER_PATH}/${libxml2_src_folder_name}" \
+        "${libxml2_folder_name}"
+
+    )
+
+    touch "${libxml2_stamp_file_path}"
+
+  else
+    echo "Library libxml2 already installed."
   fi
 }
 

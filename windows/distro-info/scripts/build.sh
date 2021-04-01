@@ -73,7 +73,7 @@ docker_linux_arm32_image=${docker_linux_arm32_image:-"ilegeul/ubuntu:arm32v7-16.
 declare -a rest
 
 help_message="    bash $0 [--win32] [--win64] [--linux32] [--linux64] [--arm32] [--arm64] [--osx] [--all] [clean|cleanlibs|cleanall|preload-images] [--env-file file] [--disable-strip] [--without-pdf] [--with-html] [--develop] [--debug] [--jobs N] [--help]"
-host_options "${help_message}" $@
+host_options "${help_message}" "$@"
 
 # Intentionally moved after option parsing.
 echo
@@ -125,8 +125,6 @@ else
 
   # ----- Build the GNU/Linux 64-bit distribution. ----------------------------
 
-  linux_distribution="centos"
-  
   if [ "${DO_BUILD_LINUX64}" == "y" ]
   then
     host_build_target "Creating the GNU/Linux 64-bit distribution..." \
@@ -165,7 +163,7 @@ else
       --script "${CONTAINER_WORK_FOLDER_PATH}/${CONTAINER_BUILD_SCRIPT_REL_PATH}" \
       --env-file "${ENV_FILE}" \
       --target-platform "linux" \
-      --target-arch "x32" \
+      --target-arch "ia32" \
       --target-machine "i386" \
       --target-bits 32 \
       --docker-image "${docker_linux32_image}" \
@@ -182,7 +180,7 @@ else
       --script "${CONTAINER_WORK_FOLDER_PATH}/${CONTAINER_BUILD_SCRIPT_REL_PATH}" \
       --env-file "${ENV_FILE}" \
       --target-platform "win32" \
-      --target-arch "x32" \
+      --target-arch "ia32" \
       --target-machine "i386" \
       --target-bits 32 \
       --docker-image "${docker_linux32_image}" \
@@ -190,7 +188,7 @@ else
       ${rest[@]-}
   fi
 
-  # ----- Build the GNU/Linux Arm 64-bit distribution. ---------------------------
+  # ----- Build the GNU/Linux Arm 64-bit distribution. ------------------------
 
   if [ "${DO_BUILD_LINUX_ARM64}" == "y" ]
   then
@@ -206,7 +204,7 @@ else
       ${rest[@]-}
   fi
 
-  # ----- Build the GNU/Linux Arm 32-bit distribution. ---------------------------
+  # ----- Build the GNU/Linux Arm 32-bit distribution. ------------------------
 
   if [ "${DO_BUILD_LINUX_ARM32}" == "y" ]
   then

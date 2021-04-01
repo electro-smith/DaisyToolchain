@@ -396,6 +396,7 @@ __EOF__
 
 }
 
+# --32 i386/ubuntu:rolling fails during update
 function create_latest_data_file()
 {
   local message="$1"
@@ -436,8 +437,7 @@ cat <<__EOF__ > "${data_file_path}"
           "script": [
             "env | sort",
             "pwd",
-            "DEBUG=${DEBUG} bash tests/scripts/docker-test.sh --32 i386/ubuntu:latest ${base_url} ",
-            "DEBUG=${DEBUG} bash tests/scripts/docker-test.sh --32 i386/ubuntu:rolling ${base_url} "
+            "DEBUG=${DEBUG} bash tests/scripts/docker-test.sh --32 i386/ubuntu:latest ${base_url} "
           ]
         },
         {
@@ -1063,9 +1063,9 @@ function trigger_travis()
    -H "Content-Type: application/json" \
    -H "Accept: application/json" \
    -H "Travis-API-Version: 3" \
-   -H "Authorization: token ${TRAVIS_ORG_TOKEN}" \
+   -H "Authorization: token ${TRAVIS_COM_TOKEN}" \
    --data-binary @"${data_file_path}" \
-   https://api.travis-ci.org/repo/${github_org}%2F${github_repo}/requests
+   https://api.travis-ci.com/repo/${github_org}%2F${github_repo}/requests
 }
 
 # -----------------------------------------------------------------------------
@@ -1074,7 +1074,7 @@ function trigger_travis()
 # Set the following variables:
 #
 # - node_platform={win32,linux,darwin}
-# - node_architecture={x64,x32,arm64,arm}
+# - node_architecture={x64,ia32,arm64,arm}
 # - bits={32,64}
 
 function detect_architecture()
@@ -1101,7 +1101,7 @@ function detect_architecture()
     bits="64"
   elif [ "${uname_machine}" == "i386" -o "${uname_machine}" == "i586" -o "${uname_machine}" == "i686" ]
   then
-    node_architecture="x32"
+    node_architecture="ia32"
     bits="32"
   elif [ "${uname_machine}" == "aarch64" ]
   then
@@ -1158,7 +1158,7 @@ function install_archive()
     archive_extension="zip"
     if [ "${force_32_bit}" == "y" ]
     then
-      archive_architecture="x32"
+      archive_architecture="ia32"
     fi
   else
     archive_extension="tar.gz"
@@ -1314,6 +1314,32 @@ function run_app()
   "${app_path}" "$@" 2>&1
 }
 
+function run_app_exit()
+{
+  local expected_exit_code=$1
+  shift
+  local app_path=$1
+  shift
+  if [ "${node_platform}" == "win32" ]
+  then
+    app_path+='.exe'
+  fi
+  
+  (
+    set +e
+    echo
+    echo "${app_path} $@"
+    "${app_path}" "$@" 2>&1
+    local actual_exit_code=$?
+    echo "exit(${actual_exit_code})"
+    set -e
+    if [ ${actual_exit_code} -ne ${expected_exit_code} ]
+    then
+      exit ${actual_exit_code}
+    fi
+  )
+}
+
 function run_app_silent()
 {
   local app_path=$1
@@ -1361,7 +1387,9 @@ function good_bye()
   do_run uname -a
   if [ "${node_platform}" == "linux" ]
   then
-    do_run lsb_release -a
+    # On opensuse/tumbleweed:latest it fails:
+    # /usr/bin/lsb_release: line 122: getopt: command not found
+    do_run lsb_release -a || true
     do_run ldd --version
   elif [ "${node_platform}" == "darwin" ]
   then

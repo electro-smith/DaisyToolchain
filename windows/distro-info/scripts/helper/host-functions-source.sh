@@ -69,7 +69,7 @@ function host_detect()
   HOST_DISTRO_NAME="?" # Linux distribution name (Ubuntu|CentOS|...)
   HOST_DISTRO_LC_NAME="?" # Same, in lower case.
 
-  HOST_NODE_ARCH="?" # Node.js process.arch (x32|x64|arm|arm64)
+  HOST_NODE_ARCH="?" # Node.js process.arch (ia32|x64|arm|arm64)
   HOST_NODE_PLATFORM="?" # Node.js process.platform (darwin|linux|win32)
 
   if [ "${HOST_UNAME}" == "Darwin" ]
@@ -99,7 +99,7 @@ function host_detect()
     elif [ "${HOST_MACHINE}" == "i386" -o "${HOST_MACHINE}" == "i686" ]
     then
       HOST_BITS="32"
-      HOST_NODE_ARCH="x32"
+      HOST_NODE_ARCH="ia32"
     elif [ "${HOST_MACHINE}" == "aarch64" ]
     then
       HOST_BITS="64"
@@ -537,8 +537,6 @@ function host_common()
   fi
   CONTAINER_WORK_FOLDER_PATH="/Host${HOST_WORK_FOLDER_PATH}"
 
-  SOURCES_FOLDER_PATH="${SOURCES_FOLDER_PATH:-"${HOST_WORK_FOLDER_PATH}/sources"}"
-
   do_actions
 
   host_prepare_cache
@@ -549,7 +547,6 @@ function host_common()
   # ---------------------------------------------------------------------------
 
   mkdir -pv "${HOST_WORK_FOLDER_PATH}"
-  mkdir -pv "${SOURCES_FOLDER_PATH}"
 
   # ---------------------------------------------------------------------------
 
@@ -576,7 +573,10 @@ function host_prepare_prerequisites()
     
     local must_install=""
 
-    if [ -d "${HOME}/opt/xbb" ]
+    if [ -d "${HOME}/.local/xbb" ]
+    then
+      xbb_folder_path="${HOME}/.local/xbb"
+    elif [ -d "${HOME}/opt/xbb" ]
     then
       xbb_folder_path="${HOME}/opt/xbb"
     elif [ -d "${HOME}/opt/homebrew/xbb" ]
@@ -1093,7 +1093,7 @@ function host_build_all() {
         --script "${CONTAINER_WORK_FOLDER_PATH}/${CONTAINER_BUILD_SCRIPT_REL_PATH}" \
         --env-file "${ENV_FILE}" \
         --target-platform "linux" \
-        --target-arch "x32" \
+        --target-arch "ia32" \
         --target-machine "i386" \
         --target-bits 32 \
         --docker-image "${docker_linux32_image}" \
@@ -1106,13 +1106,13 @@ function host_build_all() {
     # Since the actual container is a 32-bit, use the debian32 binaries.
     if [ "${DO_BUILD_WIN32}" == "y" ]
     then
-      linux_install_relative_path="linux-x32/install"
+      linux_install_relative_path="linux-ia32/install"
 
       host_build_target "Creating the Windows 32-bit distribution..." \
         --script "${CONTAINER_WORK_FOLDER_PATH}/${CONTAINER_BUILD_SCRIPT_REL_PATH}" \
         --env-file "${ENV_FILE}" \
         --target-platform "win32" \
-        --target-arch "x32" \
+        --target-arch "ia32" \
         --target-machine "i386" \
         --target-bits 32 \
         --docker-image "${docker_linux32_image}" \

@@ -201,7 +201,13 @@ function prepare_xbb_env()
   PATH="${PATH:-""}"
   LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-""}"
 
-  if [ -f "${HOME}/opt/xbb/xbb-source.sh" ]
+  if [ -f "${HOME}/.local/xbb/xbb-source.sh" ]
+  then
+    XBB_FOLDER_PATH="${HOME}/.local/xbb"
+    echo
+    echo "Sourcing ${HOME}/.local/xbb/xbb-source.sh..."
+    source "${HOME}/.local/xbb/xbb-source.sh"
+  elif [ -f "${HOME}/opt/xbb/xbb-source.sh" ]
   then
     XBB_FOLDER_PATH="${HOME}/opt/xbb"
     echo
@@ -235,10 +241,10 @@ function prepare_xbb_env()
     WITH_TESTS="n"
 
     # For Windows targets, decide which cross toolchain to use.
-    if [ ${TARGET_ARCH} == "x32" ]
+    if [ "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" ]
     then
       CROSS_COMPILE_PREFIX="i686-w64-mingw32"
-    elif [ ${TARGET_ARCH} == "x64" ]
+    elif [ "${TARGET_ARCH}" == "x64" ]
     then
       CROSS_COMPILE_PREFIX="x86_64-w64-mingw32"
     else
@@ -332,7 +338,7 @@ function prepare_xbb_env()
 
   # ---------------------------------------------------------------------------
 
-  SOURCES_FOLDER_PATH=${SOURCES_FOLDER_PATH:-"${WORK_FOLDER_PATH}/sources"}
+  SOURCES_FOLDER_PATH=${SOURCES_FOLDER_PATH:-"${WORK_FOLDER_PATH}/${TARGET_FOLDER_NAME}/sources"}
   mkdir -pv "${SOURCES_FOLDER_PATH}"
 
   # Empty defaults.
@@ -363,6 +369,7 @@ function prepare_xbb_env()
   export PATH
   export LD_LIBRARY_PATH
 
+  export APP_PREFIX
   export SOURCES_FOLDER_PATH
 
   # libtool fails with the Ubuntu /bin/sh.
@@ -382,7 +389,7 @@ function prepare_xbb_extras()
   XBB_CFLAGS="-ffunction-sections -fdata-sections -pipe"
   XBB_CXXFLAGS="-ffunction-sections -fdata-sections -pipe"
 
-  if [ "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" ]
+  if [ "${TARGET_ARCH}" == "x64" -o "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" ]
   then
     XBB_CFLAGS+=" -m${TARGET_BITS}"
     XBB_CXXFLAGS+=" -m${TARGET_BITS}"
@@ -401,7 +408,10 @@ function prepare_xbb_extras()
     XBB_LDFLAGS+=" -O2"
   fi
 
-  if [ ! -z "$(xbb_activate; which "g++-xbb")" ]
+  if [ ! -z "$(xbb_activate; which "clang++-xbb")" ]
+  then
+    prepare_clang_env "" "-xbb"
+  elif [ ! -z "$(xbb_activate; which "g++-xbb")" ]
   then
     prepare_gcc_env "" "-xbb"
   elif [ ! -z "$(xbb_activate; which "g++-9")" ]
@@ -414,7 +424,12 @@ function prepare_xbb_extras()
   then
     prepare_gcc_env "" "-7"
   else
-    prepare_gcc_env "" ""
+    if [ "${TARGET_PLATFORM}" == "darwin" ]
+    then
+      prepare_clang_env "" ""
+    else
+      prepare_gcc_env "" ""
+    fi
   fi
 
   if [ "${TARGET_PLATFORM}" == "linux" ]
@@ -430,9 +445,18 @@ function prepare_xbb_extras()
   then
     SHLIB_EXT="dylib"
 
-    # Note: macOS linker ignores -static-libstdc++, so 
-    # libstdc++.6.dylib should be handled.
-    XBB_LDFLAGS+=" -Wl,-macosx_version_min,10.10"
+    export MACOSX_DEPLOYMENT_TARGET="10.10"
+
+    if [[ "${CC}" =~ *clang* ]]
+    then
+      XBB_CFLAGS+=" -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
+      XBB_CXXFLAGS+=" -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
+
+      # Note: macOS linker ignores -static-libstdc++, so 
+      # libstdc++.6.dylib should be handled.
+      XBB_LDFLAGS+=" -Wl,-macosx_version_min,${MACOSX_DEPLOYMENT_TARGET}"
+    fi
+
     XBB_LDFLAGS_LIB="${XBB_LDFLAGS}"
     XBB_LDFLAGS_APP="${XBB_LDFLAGS} -Wl,-dead_strip"
     XBB_LDFLAGS_APP_STATIC_GCC="${XBB_LDFLAGS_APP}"
@@ -576,6 +600,37 @@ function unset_gcc_env()
   unset RC
 }
 
+function prepare_clang_env()
+{
+  local prefix="$1"
+
+  local suffix
+  if [ $# -ge 2 ]
+  then
+    suffix="$2"
+  else
+    suffix=""
+  fi
+
+  export CC="${prefix}clang${suffix}"
+  export CXX="${prefix}clang++${suffix}"
+
+  export AR="${prefix}ar"
+  export AS="${prefix}as"
+  # export DLLTOOL="${prefix}dlltool"
+  export LD="${prefix}ld"
+  export NM="${prefix}nm"
+  # export OBJCOPY="${prefix}objcopy"
+  export OBJDUMP="${prefix}objdump"
+  export RANLIB="${prefix}ranlib"
+  # export READELF="${prefix}readelf"
+  export SIZE="${prefix}size"
+  export STRIP="${prefix}strip"
+  # export WINDRES="${prefix}windres"
+  # export WINDMC="${prefix}windmc"
+  # export RC="${prefix}windres"
+}
+
 # -----------------------------------------------------------------------------
 
 function do_actions()
@@ -594,35 +649,39 @@ function do_actions()
     then
       if [ "${DO_BUILD_WIN32}" == "y" ]
       then
-        echo "Removing the win32-x32 build and install ${APP_LC_NAME} folders..."
+        echo "Removing the win32 32-bit build and install ${APP_LC_NAME} folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32/build/${APP_LC_NAME}"
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32/install/${APP_LC_NAME}"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32/build/${APP_LC_NAME}"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32/install/${APP_LC_NAME}"
       fi
       if [ "${DO_BUILD_WIN64}" == "y" ]
       then
-        echo "Removing the win32-x64 build and install ${APP_LC_NAME} folders..."
+        echo "Removing the win32 64-bit build and install ${APP_LC_NAME} folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x64/build/${APP_LC_NAME}"
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x64/install/${APP_LC_NAME}"
       fi
       if [ "${DO_BUILD_LINUX32}" == "y" ]
       then
-        echo "Removing the linux-x32 build and install ${APP_LC_NAME} folders..."
+        echo "Removing the linux 32-bit build and install ${APP_LC_NAME} folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32/build/${APP_LC_NAME}"
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32/install/${APP_LC_NAME}"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32/build/${APP_LC_NAME}"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32/install/${APP_LC_NAME}"
       fi
       if [ "${DO_BUILD_LINUX64}" == "y" ]
       then
-        echo "Removing the linux-x64 build and install ${APP_LC_NAME} folders..."
+        echo "Removing the linux 64-bit build and install ${APP_LC_NAME} folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x64/build/${APP_LC_NAME}"
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x64/install/${APP_LC_NAME}"
       fi
       if [ "${DO_BUILD_OSX}" == "y" ]
       then
-        echo "Removing the darwin-x64 build and install ${APP_LC_NAME} folders..."
+        echo "Removing the darwin build and install ${APP_LC_NAME} folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/darwin-x64/build/${APP_LC_NAME}"
         rm -rf "${HOST_WORK_FOLDER_PATH}/darwin-x64/install/${APP_LC_NAME}"
@@ -650,15 +709,18 @@ function do_actions()
     then
       if [ "${DO_BUILD_WIN32}" == "y" ]
       then
-        echo "Removing the win32-x32 build and install libs folders..."
+        echo "Removing the win32 32-bit build and install libs folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32/build/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32/install/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32/install"/stamp-*-installed
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32/build/libs"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32/install/libs"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32/install"/stamp-*-installed
       fi
       if [ "${DO_BUILD_WIN64}" == "y" ]
       then
-        echo "Removing the win32-x64 build and install libs folders..."
+        echo "Removing the win32 64-bit build and install libs folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x64/build/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x64/install/libs"
@@ -666,15 +728,18 @@ function do_actions()
       fi
       if [ "${DO_BUILD_LINUX32}" == "y" ]
       then
-        echo "Removing the linux-x32 build and install libs folders..."
+        echo "Removing the linux 32-bit build and install libs folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32/build/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32/install/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32/install"/stamp-*-installed
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32/build/libs"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32/install/libs"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32/install"/stamp-*-installed
       fi
       if [ "${DO_BUILD_LINUX64}" == "y" ]
       then
-        echo "Removing the linux-x64 build and install libs folders..."
+        echo "Removing the linux 64-bit build and install libs folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x64/build/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x64/install/libs"
@@ -682,7 +747,7 @@ function do_actions()
       fi
       if [ "${DO_BUILD_OSX}" == "y" ]
       then
-        echo "Removing the darwin-x64 build and install libs folders..."
+        echo "Removing the darwin build and install libs folders..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/darwin-x64/build/libs"
         rm -rf "${HOST_WORK_FOLDER_PATH}/darwin-x64/install/libs"
@@ -709,31 +774,33 @@ function do_actions()
     then
       if [ "${DO_BUILD_WIN32}" == "y" ]
       then
-        echo "Removing the win32-x32 folder..."
+        echo "Removing the win32 32-bit folder..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x32"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/win32-ia32"
       fi
       if [ "${DO_BUILD_WIN64}" == "y" ]
       then
-        echo "Removing the win32-x64 folder..."
+        echo "Removing the win32 64-bit folder..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/win32-x64"
       fi
       if [ "${DO_BUILD_LINUX32}" == "y" ]
       then
-        echo "Removing the linux-x32 folder..."
+        echo "Removing the linux 32-bit folder..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x32"
+        rm -rf "${HOST_WORK_FOLDER_PATH}/linux-ia32"
       fi
       if [ "${DO_BUILD_LINUX64}" == "y" ]
       then
-        echo "Removing the linux-x64 folder..."
+        echo "Removing the linux 64-bit folder..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/linux-x64"
       fi
       if [ "${DO_BUILD_OSX}" == "y" ]
       then
-        echo "Removing the darwin-x64 folder..."
+        echo "Removing the darwin folder..."
 
         rm -rf "${HOST_WORK_FOLDER_PATH}/darwin-x64"
       fi
@@ -802,6 +869,17 @@ function run_verbose()
   echo
   echo "[${app_path} $@]"
   "${app_path}" "$@" 2>&1
+}
+
+function run_verbose_timed()
+{
+  # Does not include the .exe extension.
+  local app_path=$1
+  shift
+
+  echo
+  echo "[${app_path} $@]"
+  time "${app_path}" "$@" 2>&1
 }
 
 function run_app()
@@ -902,7 +980,7 @@ function do_patch()
     local patch_path="${BUILD_GIT_PATH}/patches/${patch_file_name}"
     if [ -f "${patch_path}" ]
     then
-      echo "Patching..."
+      echo "Applying \"${patch_path}\"..."
       patch -p0 < "${patch_path}"
     fi
   fi
@@ -926,11 +1004,13 @@ function extract()
       then
         unzip "${archive_name}" 
       else
+        # On macOS Docker seems to have a problem and extracting symlinks
+        # fails, but a second atempt is successful.
         if [ ! -z "${DEBUG}" ]
         then
-          tar -x -v -f "${archive_name}" --no-same-owner
+          tar -x -v -f "${archive_name}" --no-same-owner || tar -x -v -f "${archive_name}" --no-same-owner
         else
-          tar -x -f "${archive_name}" --no-same-owner
+          tar -x -f "${archive_name}" --no-same-owner || tar -x -f "${archive_name}" --no-same-owner
         fi
       fi
 
@@ -1040,7 +1120,7 @@ function check_binary_for_libraries()
     if [ "${TARGET_PLATFORM}" == "win32" ]
     then
       echo
-      echo "${file_name} (${file_path})"
+      echo "${file_name}: (${file_path})"
       set +e
       ${CROSS_COMPILE_PREFIX}-objdump -x "${file_path}" | grep -i 'DLL Name'
 
@@ -1073,7 +1153,8 @@ function check_binary_for_libraries()
       (
         set +e
         cd ${folder_path}
-        otool -L "${file_name}"
+        echo "${file_name}: (${file_path})"
+        otool -L "${file_name}" | sed -e '1d'
         set -e
       )
 
@@ -1135,7 +1216,7 @@ function check_binary_for_libraries()
     elif [ "${TARGET_PLATFORM}" == "linux" ]
     then
       echo
-      echo "${file_name} (${file_path})"
+      echo "${file_name}: (${file_path})"
       set +e
       readelf -d "${file_path}" | egrep -i '(SONAME)'
       readelf -d "${file_path}" | egrep -i '(RUNPATH|RPATH)'
@@ -1447,7 +1528,7 @@ function strip_binaries()
       xbb_activate
 
       echo
-      echo "Stripping binaries..."
+      echo "# Stripping binaries..."
 
       # Otherwise `find` may fail.
       cd "${WORK_FOLDER_PATH}"
@@ -1465,7 +1546,7 @@ function strip_binaries()
       elif [ "${TARGET_PLATFORM}" == "darwin" ]
       then
 
-        binaries=$(find "${folder_path}" -name \* -perm +111  -type f)
+        binaries=$(find "${folder_path}" -name \* -perm +111 -type f ! -type l)
         for bin in ${binaries} 
         do
           if is_elf "${bin}"
@@ -1485,7 +1566,7 @@ function strip_binaries()
       elif [ "${TARGET_PLATFORM}" == "linux" ]
       then
 
-        binaries=$(find "${folder_path}" -name \* -type f)
+        binaries=$(find "${folder_path}" -name \* -type f ! -type l)
         for bin in ${binaries} 
         do
           if is_elf "${bin}"
@@ -1565,6 +1646,11 @@ function strip_binary()
       file_path="${file_path}.exe"
     fi
   else
+    if [ -L "${file_path}" ]
+    then
+      echo "??? '${file_path}' should not strip links"
+      exit 1
+    fi
     if [ -z "${strip}" ]
     then
       strip="strip"
@@ -1588,7 +1674,7 @@ function strip_binary()
     return
   fi
 
-  echo "${strip} ${file_path}"
+  echo "[${strip} ${file_path}]"
   "${strip}" -S "${file_path}" || true
 }
 
@@ -1616,7 +1702,7 @@ function is_elf()
       file ${bin_path} | egrep -q "( ELF )"
     elif [ "${TARGET_PLATFORM}" == "darwin" ]
     then
-      file ${bin_path} | egrep -q "( Mach-O )"
+      file ${bin_path} | egrep -q "Mach-O .*x86_64"
     elif [ "${TARGET_PLATFORM}" == "win32" ]
     then
       file ${bin_path} | egrep -q "( PE )|( PE32 )|( PE32\+ )"
@@ -1648,7 +1734,7 @@ function is_target()
     if [ "${TARGET_PLATFORM}" == "linux" -a "${TARGET_ARCH}" == "x64" ]
     then
       file ${bin_path} | egrep -q ", x86-64, "
-    elif [ "${TARGET_PLATFORM}" == "linux" -a "${TARGET_ARCH}" == "x32" ]
+    elif [ "${TARGET_PLATFORM}" == "linux" -a \( "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" \) ]
     then
       file ${bin_path} | egrep -q ", Intel 80386, "
     elif [ "${TARGET_PLATFORM}" == "linux" -a "${TARGET_ARCH}" == "arm64" ]
@@ -1657,13 +1743,13 @@ function is_target()
     elif [ "${TARGET_PLATFORM}" == "linux" -a "${TARGET_ARCH}" == "arm" ]
     then
       file ${bin_path} | egrep -q ", ARM, "
-    elif [ "${TARGET_PLATFORM}" == "darwin"-a "${TARGET_ARCH}" == "x64" ]
+    elif [ "${TARGET_PLATFORM}" == "darwin" -a "${TARGET_ARCH}" == "x64" ]
     then
       file ${bin_path} | egrep -q " x86_64"
     elif [ "${TARGET_PLATFORM}" == "win32" -a "${TARGET_ARCH}" == "x64" ]
     then
       file ${bin_path} | egrep -q " x86-64 "
-    elif [ "${TARGET_PLATFORM}" == "win32" -a "${TARGET_ARCH}" == "x32" ]
+    elif [ "${TARGET_PLATFORM}" == "win32" -a \( "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" \) ]
     then
       file ${bin_path} | egrep -q " Intel 80386"
     fi
@@ -1822,6 +1908,12 @@ function change_dylib()
   local dylib_name="$1"
   local file_path="$2"
 
+  if [ -L "${file_path}" ]
+  then
+    echo "??? '${file_path}' should not change links link!"
+    exit 1
+  fi
+
   local dylib_path="$(otool -L "${file_path}" | sed '1d' | sed -e 's|[[:space:]]*\(.*\)[[:space:]][(].*[)]|\1|' | grep "${dylib_name}")"
 
   if [ -z "${dylib_path}" ]
@@ -1840,14 +1932,17 @@ function change_dylib()
   then
     local version="$(otool -L "${file_path}" | grep "${dylib_name}" | sed -e 's|.*current version \([0-9][0-9]*\.[0-9][0-9]*\).*|\1|')"
     dylib_name="libpython${version}.dylib"
-    rm -rf "$(dirname ${file_path})/Python"
+    rm -rfv "$(dirname ${file_path})/Python"
   fi
 
   chmod +w "${file_path}"
-  install_name_tool \
-    -change "${dylib_path}" \
-    "@executable_path/${dylib_name}" \
-    "${file_path}"
+  if [ "${dylib_path}" != "@executable_path/${dylib_name}" ]
+  then
+    run_verbose install_name_tool \
+      -change "${dylib_path}" \
+      "@executable_path/${dylib_name}" \
+      "${file_path}"
+  fi
 
   if [ ! -f "$(dirname ${file_path})/${dylib_name}" ]
   then
@@ -1874,6 +1969,16 @@ function patch_linux_elf_origin()
     libexec_path="$(dirname "${file_path}")"
   fi
 
+  local patchelf=${PATCHELF:-$(which patchelf)}
+  # run_verbose "${patchelf}" --version
+  # run_verbose "${patchelf}" --help
+
+  local patchelf_has_output=""
+  if "${patchelf}" --help 2>&1 | egrep -q -e '--output'
+  then
+    patchelf_has_output="y"
+  fi
+
   local tmp_path=$(mktemp)
   rm -rf "${tmp_path}"
   cp "${file_path}" "${tmp_path}"
@@ -1884,15 +1989,20 @@ function patch_linux_elf_origin()
   else
     if has_rpath "${file_path}"
     then
-      echo patchelf --force-rpath --set-rpath "\$ORIGIN" "${file_path}"
-      patchelf --force-rpath --set-rpath "\$ORIGIN" "${tmp_path}"
+      if [ "${patchelf_has_output}" == "y" ]
+      then
+       echo ${patchelf} --force-rpath --set-rpath "\$ORIGIN" --output "${file_path}" "${tmp_path}" 
+       ${patchelf} --force-rpath --set-rpath "\$ORIGIN" --output "${file_path}" "${tmp_path}" 
+      else
+        echo ${patchelf} --force-rpath --set-rpath "\$ORIGIN" "${file_path}"
+        ${patchelf} --force-rpath --set-rpath "\$ORIGIN" "${tmp_path}"
+        cp "${tmp_path}" "${file_path}"
+      fi
     else
       echo "${file_path} has no rpath!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
       exit 1
     fi
   fi
-
-  cp "${tmp_path}" "${file_path}"
   rm -rf "${tmp_path}"
 }
 
@@ -1988,7 +2098,7 @@ function prepare_app_folder_libraries()
     xbb_activate
 
     echo
-    echo "Preparing ${folder_path} libraries..."
+    echo "# Preparing ${folder_path} libraries..."
 
     # Otherwise `find` may fail.
     cd "${WORK_FOLDER_PATH}"
@@ -2001,7 +2111,7 @@ function prepare_app_folder_libraries()
       for bin in ${binaries} 
       do
         echo
-        echo "Preparing $(basename "${bin}") ${bin} libraries..."
+        echo "## Preparing $(basename "${bin}") ${bin} libraries..."
         # On Windows the DLLs are copied in the same folder.
         copy_dependencies_recursive "${bin}" "$(dirname "${bin}")"
       done
@@ -2015,7 +2125,7 @@ function prepare_app_folder_libraries()
         if is_elf "${bin}"
         then
           echo
-          echo "Preparing $(basename "${bin}") ${bin} libraries..."
+          echo "## Preparing $(basename "${bin}") ${bin} libraries..."
           copy_dependencies_recursive "${bin}" "$(dirname "${bin}")"
         fi
       done
@@ -2029,12 +2139,12 @@ function prepare_app_folder_libraries()
         if is_elf_dynamic "${bin_path}"
         then
           echo
-          echo "Preparing $(basename "${bin_path}") (${bin_path}) libraries..."
+          echo "## Preparing $(basename "${bin_path}") (${bin_path}) libraries..."
           # On Linux the shared libraries can be copied in the libexec folder,
           # and links be kept in the current folder, but not for 32-bit
           # Intel distros.
           # For consistency reasons, do the same on all platforms.
-          if true # [ "${TARGET_ARCH}" == "x32" ]
+          if true # [ "${TARGET_ARCH}" == "x32" -o "${TARGET_ARCH}" == "ia32" ]
           then
             copy_dependencies_recursive "${bin_path}" \
               "$(dirname "${bin_path}")"
@@ -2073,6 +2183,8 @@ function copy_dependencies_recursive()
     libexec_folder_path="${dest_folder_path}"
   fi
 
+  # echo "copy_dependencies_recursive $@"
+
   # The first step is to copy the file to libexec/destination and link it.
 
   local source_file_name="$(basename "${source_file_path}")"
@@ -2102,6 +2214,7 @@ function copy_dependencies_recursive()
         #
         # Compute the final absolute path of the link, regardless
         # how many links there are on the way.
+        echo "process link ${source_file_path}"
         actual_source_file_path="$(readlink -f "${source_file_path}")"
         copied_file_path="${libexec_folder_path}/$(basename "${actual_source_file_path}")"
         
@@ -2111,7 +2224,7 @@ function copy_dependencies_recursive()
         if [ "${IS_DEVELOP}" == "y" ]
         then
           # The file is definitelly an elf, not a link.
-          echo "is_elf ${source_file_name}"
+          echo "[is_elf ${source_file_name}]"
         fi
 
         actual_source_file_path="${source_file_path}"
@@ -2119,7 +2232,8 @@ function copy_dependencies_recursive()
 
       else
         # Not a symlink and not an elf. Ignore it.
-        echo "!!!!!!!!!!!!!!"
+        file "${source_file_path}"
+        echo "!!!!!!!!!!!!!!" 
         return
       fi
     fi
@@ -2132,18 +2246,18 @@ function copy_dependencies_recursive()
   then
     if [ ! -f "${copied_file_path}" ]
     then
-      install -v -c -m 644 "${actual_source_file_path}" "${copied_file_path}"
+      run_verbose install -c -m 644 "${actual_source_file_path}" "${copied_file_path}"
     fi
   else
     actual_source_file_path="${source_file_path}"
   fi
 
-  if [ "${WITH_STRIP}" == "y" ]
+  if [ "${WITH_STRIP}" == "y" -a ! -L "${copied_file_path}" ]
   then
     strip_binary "${copied_file_path}"
   fi
 
-  if [ "${TARGET_PLATFORM}" == "linux" ]
+  if [ "${TARGET_PLATFORM}" == "linux" -a ! -L "${copied_file_path}" ]
   then
     patch_linux_elf_origin "${copied_file_path}"
   fi
@@ -2155,7 +2269,7 @@ function copy_dependencies_recursive()
       cd "${dest_folder_path}"
 
       local link_relative_path="$(realpath --relative-to="${dest_folder_path}" "${copied_file_path}")"
-      ln -sv "${link_relative_path}" "${source_file_name}" 
+      run_verbose ln -s "${link_relative_path}" "${source_file_name}" 
     )
   fi
 
@@ -2245,13 +2359,13 @@ function copy_dependencies_recursive()
     local lib_name
     for lib_path in ${lib_paths}
     do
-      local lib_link_base
+      local lib_link_name
       if [ "${lib_path:0:1}" != "@" ]
       then
         lib_link_name="$(basename $(readlink -f ${lib_path}))"
         lib_name="$(basename "${lib_path}")"
       else
-        lib_link_base=""
+        lib_link_name=""
         lib_name="${lib_path:${#exec_prefix}}"
       fi
 
@@ -2306,6 +2420,10 @@ function copy_dependencies_recursive()
               then
                 copy_dependencies_recursive "${XBB_FOLDER_PATH}/lib/${lib_name}" \
                   "${actual_dest_folder_path}" "${libexec_folder_path}"
+              elif [ -f "${XBB_FOLDER_PATH}/usr/x86_64-apple-darwin14.5.0/lib/${lib_name}" ]
+              then
+                copy_dependencies_recursive "${XBB_FOLDER_PATH}/usr/x86_64-apple-darwin14.5.0/lib/${lib_name}" \
+                  "${actual_dest_folder_path}" "${libexec_folder_path}"
               else
                 echo "${lib_name} not found in the compiled or XBB libraries."
                 exit 1
@@ -2313,8 +2431,11 @@ function copy_dependencies_recursive()
             fi
           fi
 
-          # Change library path to '@executable_path' inside the lib or app.
-          change_dylib "${lib_name}" "${dest_folder_path}/${source_file_name}"
+          if [ ! -L "${copied_file_path}" ]
+          then
+            # Change library path to '@executable_path' inside the lib or app.
+            change_dylib "${lib_name}" "${copied_file_path}" # "${dest_folder_path}/${source_file_name}"
+          fi
         fi
       fi
     done
@@ -2369,6 +2490,7 @@ function copy_dependencies_recursive()
   fi
 }
 
+# Check all executables and shared libraries in the given folder.
 function check_binaries()
 {
   local folder_path="${APP_PREFIX}"
@@ -2399,7 +2521,7 @@ function check_binaries()
     elif [ "${TARGET_PLATFORM}" == "darwin" ]
     then
 
-      binaries=$(find "${folder_path}" -name \* -type f)
+      binaries=$(find "${folder_path}" -name \* -type f ! -iname "*.cmake" ! -iname "*.txt" ! -iname "*.rst" ! -iname "*.html" ! -iname "*.json" ! -iname "*.py" ! -iname "*.pyc" ! -iname "*.h" ! -iname "*.xml")
       for bin in ${binaries} 
       do
         if is_elf "${bin}"
@@ -2416,7 +2538,7 @@ function check_binaries()
     elif [ "${TARGET_PLATFORM}" == "linux" ]
     then
 
-      binaries=$(find "${folder_path}" -name \* -type f)
+      binaries=$(find "${folder_path}" -name \* -type f ! -iname "*.cmake" ! -iname "*.txt" ! -iname "*.rst" ! -iname "*.html" ! -iname "*.json" ! -iname "*.py" ! -iname "*.pyc" ! -iname "*.h" ! -iname "*.xml")
       for bin in ${binaries} 
       do
         if is_elf_dynamic "${bin}"
@@ -2693,6 +2815,7 @@ function create_archive()
 
 # -----------------------------------------------------------------------------
 
+# Deprecated, use check_binaries.
 # $1 = application name
 function check_application()
 {
