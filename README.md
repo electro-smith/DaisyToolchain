@@ -13,10 +13,10 @@ Static Toolchain for the Daisy ecosystem
 [clang-format](https://llvm.org/)  
 
 ## Package Versions
-### Windows
-
  - GNU Make: 4.3  
  - openocd: 0.11.0  
  - dfu-util: 0.10  
  - clang-format: 10.0.0
  - arm toolchain: 10-2020-q4-major
+
+(These are identical on each OS)
