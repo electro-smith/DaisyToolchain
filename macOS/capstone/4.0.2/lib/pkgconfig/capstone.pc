@@ -1,8 +1,0 @@
-Name: capstone
-Description: Capstone disassembly engine
-Version: 4.0.2
-libdir=/usr/local/Cellar/capstone/4.0.2/lib
-includedir=/usr/local/Cellar/capstone/4.0.2/include/capstone
-archive=${libdir}/libcapstone.a
-Libs: -L${libdir} -lcapstone
-Cflags: -I${includedir}
