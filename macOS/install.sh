@@ -4,7 +4,7 @@
 echo "Installing DaisyToolchain"
 
 MACOS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-MACOS="$MACOS"/bin
+MACOS="$MACOS"/gcc-arm-none-eabi/bin
 echo -e "\nexport PATH="$MACOS:'$PATH'"" >> ~/.bashrc
 echo -e "\nexport PATH="$MACOS:'$PATH'"" >> ~/.zshrc
 
@@ -18,7 +18,7 @@ fi
 #upgrade homebrew
 echo "Upgrading Homebrew"
 brew update
-brew upgrade
+#brew upgrade # I don't think we should force everyone's tools to update.
 
 # install packages
 echo "Installing openocd"
