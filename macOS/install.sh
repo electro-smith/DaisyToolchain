@@ -6,7 +6,7 @@ echo "Installing DaisyToolchain"
 MACOS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 MACOS="$MACOS"/gcc-arm-none-eabi/bin
 echo -e "\nexport PATH="$MACOS:'$PATH'"" >> ~/.bash_profile
-echo -e "\nexport PATH="$MACOS:'$PATH'"" >> ~/.zsh_profile
+echo -e "\nexport PATH="$MACOS:'$PATH'"" >> ~/.zprofile
 
 # install brew
 if ! command -v brew &> /dev/null
