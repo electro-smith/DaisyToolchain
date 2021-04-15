@@ -1,6 +1,9 @@
 # DaisyToolchain
 Static Toolchain for the Daisy ecosystem
 
+## Install
+Check out the [DaisyWiki for installation instructions.](https://github.com/electro-smith/DaisyWiki/wiki/1.-Setting-Up-Your-Development-Environment)
+
 
 ## Package DL locations
 ### Windows
