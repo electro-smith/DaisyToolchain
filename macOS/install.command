@@ -20,9 +20,6 @@ echo "Upgrading Homebrew"
 brew update
 #brew upgrade # I don't think we should force everyone's tools to update.
 
-# install packages
-echo "Installing openocd"
-brew install openocd
+echo "Installing packages with Homebrew"
+brew install openocd dfu-util gcc-arm-embedded
 
-echo "Installing dfu-util"
-brew install dfu-util
