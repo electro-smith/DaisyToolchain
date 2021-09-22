@@ -1,10 +1,10 @@
 project(DaisyToolchain)
 
-add_executable(DaisyToolchain hello_world.c)
+# add_executable(DaisyToolchain hello_world.c)
+# add_executable(DaisyToolchain IMPORTED)
+# set_property(TARGET DaisyToolchain PROPERTY IMPORTED_LOCATION "./DaisyToolchain.exe")
 
 cmake_minimum_required(VERSION 3.20)
-
-# include(InstallRequiredSystemLibraries)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Daisy Toolchain")
 set(CPACK_PACKAGE_VENDOR "Electro-Smith")
@@ -25,12 +25,12 @@ if(WIN32 AND NOT UNIX)
   set(CPACK_NSIS_CONTACT "contact@electro-smith.com")
   set(CPACK_NSIS_MODIFY_PATH ON)
   set(CPACK_NSIS_DaisyToolchain_INSTALL_DIRECTORY "Release\\\\")
-  # set(CPACK_NSIS_FULL_INSTALL ON)
+  install(DIRECTORY ../windows/bin DESTINATION .)
+
 else()
   set(CPACK_STRIP_FILES "bin/DaisyToolchain")
   set(CPACK_SOURCE_STRIP_FILES "")
 endif()
+
 set(CPACK_PACKAGE_EXECUTABLES "DaisyToolchain" "Daisy Toolchain")
 include(CPack)
-
-install(TARGETS DaisyToolchain)
