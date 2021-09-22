@@ -1,9 +1,5 @@
 project(DaisyToolchain)
 
-# add_executable(DaisyToolchain hello_world.c)
-# add_executable(DaisyToolchain IMPORTED)
-# set_property(TARGET DaisyToolchain PROPERTY IMPORTED_LOCATION "./DaisyToolchain.exe")
-
 cmake_minimum_required(VERSION 3.20)
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Daisy Toolchain")
