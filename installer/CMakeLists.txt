@@ -21,6 +21,7 @@ if(WIN32 AND NOT UNIX)
   set(CPACK_NSIS_CONTACT "hello@electro-smith.com")
   set(CPACK_NSIS_MODIFY_PATH ON)
   set(CPACK_NSIS_DaisyToolchain_INSTALL_DIRECTORY "Release\\\\")
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/") # custom nsis location
   install(DIRECTORY ../windows/bin DESTINATION .)
 
 else()
