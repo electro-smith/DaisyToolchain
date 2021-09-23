@@ -704,21 +704,22 @@ Section "-Core installation"
   ;Read a value from an InstallOptions INI file
   !insertmacro MUI_INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
   !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_ALL_USERS "NSIS.InstallOptions.ini" "Field 3" "State"
-  !insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
+  ;!insertmacro MUI_INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
+  StrCpy $ADD_TO_PATH_CURRENT_USER "1"
 
   ; Write special uninstall registry entries
   ;Push "StartMenu"
   ;Push "$STARTMENU_FOLDER"
   ;Call ConditionalAddToRegisty
-  ;Push "DoNotAddToPath"
-  ;Push "$DO_NOT_ADD_TO_PATH"
-  ;Call ConditionalAddToRegisty
-  ;Push "AddToPathAllUsers"
-  ;Push "$ADD_TO_PATH_ALL_USERS"
-  ;Call ConditionalAddToRegisty
-  ;Push "AddToPathCurrentUser"
-  ;Push "$ADD_TO_PATH_CURRENT_USER"
-  ;Call ConditionalAddToRegisty
+  Push "DoNotAddToPath"
+  Push "$DO_NOT_ADD_TO_PATH"
+  Call ConditionalAddToRegisty
+  Push "AddToPathAllUsers"
+  Push "$ADD_TO_PATH_ALL_USERS"
+  Call ConditionalAddToRegisty
+  Push "AddToPathCurrentUser"
+  Push "$ADD_TO_PATH_CURRENT_USER"
+  Call ConditionalAddToRegisty
   ;Push "InstallToDesktop"
   ;Push "$INSTALL_DESKTOP"
   ;Call ConditionalAddToRegisty
