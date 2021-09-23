@@ -22,7 +22,17 @@ if(WIN32 AND NOT UNIX)
   set(CPACK_NSIS_MODIFY_PATH ON)
   set(CPACK_NSIS_DaisyToolchain_INSTALL_DIRECTORY "Release\\\\")
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/") # custom nsis location
+
+  # there's certainly a cleaner way to do this!
+  install(DIRECTORY ../windows/arm-none-eabi DESTINATION .) 
   install(DIRECTORY ../windows/bin DESTINATION .)
+  install(DIRECTORY ../windows/contrib DESTINATION .)
+  install(DIRECTORY ../windows/distro-info DESTINATION .)
+  install(DIRECTORY ../windows/doc DESTINATION .)
+  install(DIRECTORY ../windows/lib DESTINATION .)
+  install(DIRECTORY ../windows/OpenULINK DESTINATION .)
+  install(DIRECTORY ../windows/scripts DESTINATION .)
+  install(DIRECTORY ../windows/share DESTINATION .)
 
 else()
   set(CPACK_STRIP_FILES "bin/DaisyToolchain")
