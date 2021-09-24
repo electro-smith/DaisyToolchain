@@ -10,6 +10,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR "1")
 set(CPACK_PACKAGE_VERSION_MINOR "0")
 set(CPACK_PACKAGE_VERSION_PATCH "0")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "DaisyToolchain")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/resources/license.txt")
 if(WIN32 AND NOT UNIX)
 #   There is a bug in NSI that does not handle full UNIX paths properly.
 #   Make sure there is at least one set of four backlashes.

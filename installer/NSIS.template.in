@@ -540,7 +540,7 @@ FunctionEnd
   
   !insertmacro MUI_PAGE_WELCOME
 
-  !insertmacro MUI_PAGE_LICENSE "D:/Program Files/CMake/share/cmake-3.21/Templates/CPack.GenericLicense.txt"
+  !insertmacro MUI_PAGE_LICENSE "D:/Development/DaisyToolchain/installer/resources/license.txt"
   Page custom InstallOptionsPage
   !insertmacro MUI_PAGE_DIRECTORY
 
