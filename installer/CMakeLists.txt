@@ -35,9 +35,6 @@ if(WIN32 AND NOT UNIX)
   install(DIRECTORY ../windows/scripts DESTINATION .)
   install(DIRECTORY ../windows/share DESTINATION .)
 
-else()
-  set(CPACK_STRIP_FILES "bin/DaisyToolchain")
-  set(CPACK_SOURCE_STRIP_FILES "")
 endif()
 
 set(CPACK_PACKAGE_EXECUTABLES "DaisyToolchain" "Daisy Toolchain")
