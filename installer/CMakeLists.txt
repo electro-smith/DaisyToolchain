@@ -36,8 +36,9 @@ if(WIN32 AND NOT UNIX)
   install(DIRECTORY ../windows/share DESTINATION .)
 
 else()
-  set(CPACK_STRIP_FILES "bin/DaisyToolchain")
-  set(CPACK_SOURCE_STRIP_FILES "")
+  install(DIRECTORY ../macOS/DaisyToolchain DESTINATION . COMPONENT applications )
+  set(CPACK_POSTFLIGHT_APPLICATIONS_SCRIPT ./postflight_macos.sh )
+  set(CPACK_COMPONENTS_ALL applications)
 endif()
 
 set(CPACK_PACKAGE_EXECUTABLES "DaisyToolchain" "Daisy Toolchain")
