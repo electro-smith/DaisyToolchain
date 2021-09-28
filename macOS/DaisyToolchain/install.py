@@ -14,37 +14,23 @@ commlist = ['''
 textlist = ['Installing Homebrew', 'Upgrading Homebrew', 'Installing Packages (This may take a while)', 'Done!']
 sub_proc = None
 
+running = True
+installing = False
 
 def Cancel():
+    global sub_proc
+    global installing
+    global running
+    running = False
+    installing = False
     if(sub_proc):
         sub_proc.kill()
     exit()
 
 def Install():
-    for i in range(len(commlist)):                
-
-        # write new text
-        txt.delete('0.0', tk.END)
-        txt.insert(tk.END, textlist[i])
-        root.update()
-
-        # run the command in a child
-        sub_proc = subprocess.Popen(
-                ['/bin/bash', '-c', commlist[i]]
-#                stdout=proc_log,
-#                stderr=proc_log
-        )
-
-        # do graphics while we wait for the child
-        while sub_proc.poll() is None:
-            #proc_log.flush()
-            #os.fsync(proc_log)
-            root.update()
-
-        # increment the progress bar
-        p.step()            
-
-
+    global installing
+    installing = True
+    installButton['state'] = 'disabled'
 
 root = tk.Tk()
 root.title("DaisyToolchain Installer")
@@ -63,5 +49,30 @@ installButton = tk.Button(root, text="Agree to License and Install", command=Ins
 installButton.pack()
 
 
-while (True):
-    root.mainloop()
+while (running):
+    if(installing):
+        for i in range(len(commlist)):
+            # write new text
+            txt.delete('0.0', tk.END)
+            txt.insert(tk.END, textlist[i])
+            root.update()
+
+            # run the command in a child
+            sub_proc = subprocess.Popen(['/bin/bash', '-c', commlist[i]])
+
+            # do graphics while we wait for the child to die
+            while sub_proc.poll() is None:
+                root.update_idletasks()
+                root.update()
+
+
+            # increment the progress bar
+            p.step()
+            
+        sub_proc = None
+        installButton.bind("<Button-1>", Cancel)
+        installButton.set("Done")
+        cancelButton['state'] = 'disabled'
+        
+    root.update_idletasks()
+    root.update()
