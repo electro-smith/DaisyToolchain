@@ -43,13 +43,10 @@ PRODUCT=__PRODUCT__
 
 echo "Application uninstalling process started"
 # remove link to shorcut file
-find "/usr/local/bin/" -name "__PRODUCT__-__VERSION__" | xargs rm
-if [ $? -eq 0 ]
-then
-  echo "[1/3] [DONE] Successfully deleted shortcut links"
-else
-  echo "[1/3] [ERROR] Could not delete shortcut links" >&2
-fi
+bin_files=$(echo $(ls bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -rf $bin_files
+echo "[1/3] [DONE] Successfully deleted shortcut links"
+
 
 #forget from pkgutil
 pkgutil --forget "org.$PRODUCT.$VERSION" > /dev/null 2>&1
