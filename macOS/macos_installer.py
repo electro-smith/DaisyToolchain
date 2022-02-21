@@ -3,19 +3,20 @@ import text
 from tkinter import *
 
 # Global Vars
-title_text = ["Welcome to Daisy Toolchain Setup", "License Agreement", "Choose Install Location", "Installing..."]
-body_text = [text.body_text_0, text.body_text_1, text.body_text_2, "Installing..."]
-next_button_text = ["Next>", "I Agree", "Install", "Install"]
+title_text = ["Welcome to Daisy Toolchain Setup", "License Agreement", "Installing..."]
+body_text = [text.body_text_0, text.body_text_1, "Installing..."]
+next_button_text = ["Next>", "Agree and Install", "Install"]
 
 page_num = 0
 
 def Install():
+    print("Installing...")
     os.system('install.command')
 
 def UpdatePage():
     global next_button_text, next_button, back_button, page_num
 
-    if(page_num > -1 and page_num < 4):
+    if(page_num > -1 and page_num < 3):
         title_label['text'] = title_text[page_num]
         body_label['text'] = body_text[page_num]
         next_button['text'] = next_button_text[page_num]
@@ -32,7 +33,7 @@ def UpdatePage():
         page_num = 0
     elif(page_num == 0):
         back_button['state'] = 'disabled'
-    elif(page_num < 3):
+    elif(page_num < 2):
         back_button['state'] = 'active'
     else:
         next_button['state'] = 'disabled'

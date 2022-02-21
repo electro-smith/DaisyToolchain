@@ -10,9 +10,10 @@ Click Next to continue.
 """
 
 body_text_1 = """
-If you accept the terms of the agreement, click I Agree to continue.
+If you accept the terms of the agreement, click Agree and Install to install the Daisy Toolchain.
 You must accept the agreement to install the Daisy Toolchain.
 """
+
 body_text_2 = """
 Setup will install the Daisy Toolchain in the following folder.
 To install in a different folder, click Browse and select another folder.
