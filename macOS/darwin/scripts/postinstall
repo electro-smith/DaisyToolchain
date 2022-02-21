@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#Custermize this for your application
+BIN_DIR=bin
+
+#Parameters
+PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
+
+echo "Post installation process started"
+
+#Change permissions in home directory
+echo "Change permissions in product home"
+cd ${PRODUCT_HOME}
+chmod -R 755 .
+[ -d /usr/local/bin ] || mkdir /usr/local/bin
+
+#Add application shortcut to /usr/local/bin
+rm -f /usr/local/bin/__PRODUCT__-__VERSION__
+ln -s ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin/__PRODUCT__-__VERSION__
+echo "Post installation process finished"
