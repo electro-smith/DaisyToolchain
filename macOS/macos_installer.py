@@ -59,6 +59,13 @@ tk = Tk()
 tk.geometry("500x400")
 tk.title('Daisy Toolchain Installer')
 
+try:
+    photo = PhotoImage(file="Daisy_Icon_24x24.png")
+    tk.iconphoto(False, photo)
+except:
+    pass
+
+
 # text
 title_label = Label(tk, text=title_text[0], font=("Arial", 10))
 title_label.pack(side=TOP, padx=5, pady=10)
