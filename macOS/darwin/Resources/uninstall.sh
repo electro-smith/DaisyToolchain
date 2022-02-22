@@ -45,6 +45,8 @@ echo "Application uninstalling process started"
 # remove link to shorcut file
 bin_files=$(echo $(ls bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
 rm -rf $bin_files
+bin_files=$(echo $(ls arm/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -rf $bin_files
 echo "[1/3] [DONE] Successfully deleted shortcut links"
 
 

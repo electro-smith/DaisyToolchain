@@ -2,6 +2,7 @@
 
 #Custermize this for your application
 BIN_DIR=bin
+ARM_BIN_DIR=arm/bin
 
 #Parameters
 PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
@@ -16,4 +17,5 @@ chmod -R 755 .
 
 #Add application shortcut to /usr/local/bin
 ln -s ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin
+ln -s ${PRODUCT_HOME}/${ARM_BIN_DIR}/* /usr/local/bin
 echo "Post installation process finished"
