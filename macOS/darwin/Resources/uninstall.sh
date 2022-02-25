@@ -47,6 +47,9 @@ bin_files=$(echo $(ls bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
 rm -rf $bin_files
 bin_files=$(echo $(ls arm/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
 rm -rf $bin_files
+bin_files=$(echo $(ls openocd/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -rf $bin_files
+rm -f /usr/local/share/openocd
 echo "[1/3] [DONE] Successfully deleted shortcut links"
 
 

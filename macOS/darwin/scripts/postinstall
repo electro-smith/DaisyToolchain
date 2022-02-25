@@ -3,6 +3,8 @@
 #Custermize this for your application
 BIN_DIR=bin
 ARM_BIN_DIR=arm/bin
+OPENOCD_BIN_DIR=openocd/bin
+OPENOCD_SHARE_DIR=openocd/share
 
 #Parameters
 PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
@@ -15,7 +17,12 @@ cd ${PRODUCT_HOME}
 chmod -R 755 .
 [ -d /usr/local/bin ] || mkdir /usr/local/bin
 
-#Add application shortcut to /usr/local/bin
-ln -s ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin
-ln -s ${PRODUCT_HOME}/${ARM_BIN_DIR}/* /usr/local/bin
+#Add application shortcuts to /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/${ARM_BIN_DIR}/* /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/${OPENOCD_BIN_DIR}/* /usr/local/bin
+
+#Sharing is caring
+ln -s -f ${PRODUCT_HOME}/${OPENOCD_SHARE_DIR} /usr/local/share/openocd
+
 echo "Post installation process finished"
