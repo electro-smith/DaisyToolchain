@@ -43,12 +43,12 @@ PRODUCT=__PRODUCT__
 
 echo "Application uninstalling process started"
 # remove link to shorcut file
-bin_files=$(echo $(ls bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
-rm -rf $bin_files
-bin_files=$(echo $(ls arm/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
-rm -rf $bin_files
-bin_files=$(echo $(ls openocd/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
-rm -rf $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/arm/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/openocd/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
 rm -f /usr/local/share/openocd
 echo "[1/3] [DONE] Successfully deleted shortcut links"
 
