@@ -2,27 +2,22 @@
 
 ## Usage
 
-To install, open the Terminal application, type `cd` and drag the macOS directory. You should place a space between the words `cd` and the path being dragged in.
+For users, a pre-compiled installer can be found in the `bin` folder. Simply run the installer, follow the prompts, and you'll be good to go.
 
-Press enter.
-
-Now type
-
-`./install.sh` and press enter.
-
-This will run the brew installer (if needed), use it to install any tools, and update the PATH variable to have the arm toolchain in it.
+For development, the `ease-build.sh` script is all you need to run to generate the installer. It simply stores the version and program name, calls the `build-macos-x64.sh` script, and copies the output to the `bin` folder.
 
 ## Where did these files come from?
 
-Make was installed through the MacOS Developer Tools (usually queried when attempting t run make)
+Make is installed through the MacOS Developer Tools (usually queried when attempting to run make).
 
-The arm toolchain (gcc, g++, ar, etc.) are stored locally.
+The arm toolchain, dfu-util, and openocd are stored in `/Library/DaisyToolchain` and symlinked into `/usr/local/bin`.
 
-All other tools installed via brew
+## Package versions
 
-## Major tool versions
-
- - gcc-arm-embedded: [10-2020-q4-major](https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-mac.tar.bz2?revision=48a4e09a-eb5a-4eb8-8b11-d65d7e6370ff&la=en&hash=8AACA5F787C5360D2C3C50647C52D44BCDA1F73F)
+ - openocd: 0.11.0
+ - dfu-util: 0.10
+ - clang-format: 10.0.0
+ - arm toolchain: 10-2020-q4-major
 
 ## Licenses
 
