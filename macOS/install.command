@@ -16,7 +16,8 @@ brew update
 #brew upgrade # I don't think we should force everyone's tools to update.
 
 echo "Installing packages with Homebrew"
-brew install openocd dfu-util gcc-arm-embedded
+brew install openocd dfu-util
+brew install ./gcc-arm-embedded.rb --cask
 
 find /usr/local/Caskroom/gcc-arm-embedded -type f -perm +111 -print | xargs spctl --add --label "gcc-arm-embedded"
 find /usr/local/Caskroom/gcc-arm-embedded | xargs xattr -d com.apple.quarantine
