@@ -1,4 +1,4 @@
-version=0.1.1
+version=0.1.2
 name=DaisyToolchain
 
 ./build-macos-x64.sh $name $version
