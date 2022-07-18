@@ -1,4 +1,4 @@
-cask "gcc-arm-embedded" do
+cask "gcc-arm-embedded-10" do
   # Exists as a cask because it is impractical as a formula:
   # https://github.com/Homebrew/homebrew-core/pull/45780#issuecomment-569246452
   version "10.3-2021.10"
