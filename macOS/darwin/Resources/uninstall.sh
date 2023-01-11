@@ -49,7 +49,12 @@ bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/arm/bin) | sed 's/[^ ]* */\
 rm -f $bin_files
 bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/openocd/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
 rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/libusb-compat/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
+
 rm -f /usr/local/share/openocd
+rm -f /usr/local/opt/libusb-compat
+rm -f /usr/local/include/libusb-compat
 echo "[1/3] [DONE] Successfully deleted shortcut links"
 
 

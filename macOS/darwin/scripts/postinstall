@@ -5,6 +5,9 @@ BIN_DIR=bin
 ARM_BIN_DIR=arm/bin
 OPENOCD_BIN_DIR=openocd/bin
 OPENOCD_SHARE_DIR=openocd/share
+LIBUSB_COMPAT_DIR=libusb-compat
+LIBUSB_COMPAT_INCLUDE_DIR=libusb-compat/include
+LIBUSB_COMPAT_BIN_DIR=libusb-compat/bin
 
 #Parameters
 PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
@@ -21,8 +24,15 @@ chmod -R 755 .
 ln -s -f ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin
 ln -s -f ${PRODUCT_HOME}/${ARM_BIN_DIR}/* /usr/local/bin
 ln -s -f ${PRODUCT_HOME}/${OPENOCD_BIN_DIR}/* /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_BIN_DIR}/* /usr/local/bin
 
 #Sharing is caring
 ln -s -f ${PRODUCT_HOME}/${OPENOCD_SHARE_DIR} /usr/local/share/openocd
+
+#Include
+ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_INCLUDE_DIR} /usr/local/include/libusb-compat
+
+#Opt
+ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_DIR} /usr/local/opt/libusb-compat
 
 echo "Post installation process finished"
