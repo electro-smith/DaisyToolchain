@@ -8,6 +8,8 @@ OPENOCD_SHARE_DIR=openocd/share
 LIBUSB_COMPAT_DIR=libusb-compat
 LIBUSB_COMPAT_INCLUDE_DIR=libusb-compat/include
 LIBUSB_COMPAT_BIN_DIR=libusb-compat/bin
+LIBUSB_DIR=libusb
+LIBUSB_INCLUDE_DIR=libusb/include
 
 #Parameters
 PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
@@ -31,8 +33,10 @@ ln -s -f ${PRODUCT_HOME}/${OPENOCD_SHARE_DIR} /usr/local/share/openocd
 
 #Include
 ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_INCLUDE_DIR} /usr/local/include/libusb-compat
+ln -s -f ${PRODUCT_HOME}/${LIBUSB_INCLUDE_DIR} /usr/local/include/libusb
 
 #Opt
 ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_DIR} /usr/local/opt/libusb-compat
+ln -s -f ${PRODUCT_HOME}/${LIBUSB_DIR} /usr/local/opt/libusb
 
 echo "Post installation process finished"
