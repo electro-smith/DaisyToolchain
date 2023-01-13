@@ -1,15 +1,9 @@
 #!/bin/bash
 
-#Custermize this for your application
-BIN_DIR=bin
-ARM_BIN_DIR=arm/bin
-OPENOCD_BIN_DIR=openocd/bin
-OPENOCD_SHARE_DIR=openocd/share
-LIBUSB_COMPAT_DIR=libusb-compat
-LIBUSB_COMPAT_INCLUDE_DIR=libusb-compat/include
-LIBUSB_COMPAT_BIN_DIR=libusb-compat/bin
-LIBUSB_DIR=libusb
-LIBUSB_INCLUDE_DIR=libusb/include
+BIN=/usr/local/bin/
+INCLUDE=/usr/local/include/
+OPT=/usr/local/opt/
+SHARE=/usr/local/share/
 
 #Parameters
 PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
@@ -20,23 +14,32 @@ echo "Post installation process started"
 echo "Change permissions in product home"
 cd ${PRODUCT_HOME}
 chmod -R 755 .
-[ -d /usr/local/bin ] || mkdir /usr/local/bin
+[ -d /usr/local/bin ] || mkdir ${BIN}
 
 #Add application shortcuts to /usr/local/bin
-ln -s -f ${PRODUCT_HOME}/${BIN_DIR}/* /usr/local/bin
-ln -s -f ${PRODUCT_HOME}/${ARM_BIN_DIR}/* /usr/local/bin
-ln -s -f ${PRODUCT_HOME}/${OPENOCD_BIN_DIR}/* /usr/local/bin
-ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_BIN_DIR}/* /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/arm/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/openocd/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/libusb-compat/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/libfdti/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/hidapi/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/capstone/bin/* ${BIN}
 
 #Sharing is caring
-ln -s -f ${PRODUCT_HOME}/${OPENOCD_SHARE_DIR} /usr/local/share/openocd
+ln -s -f ${PRODUCT_HOME}/openocd/share ${SHARE}
 
 #Include
-ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_INCLUDE_DIR} /usr/local/include/libusb-compat
-ln -s -f ${PRODUCT_HOME}/${LIBUSB_INCLUDE_DIR} /usr/local/include/libusb
+ln -s -f ${PRODUCT_HOME}/libusb-compat/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/libusb/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/libftdi/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/hidapi/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/capstone/include ${INCLUDE}
 
 #Opt
-ln -s -f ${PRODUCT_HOME}/${LIBUSB_COMPAT_DIR} /usr/local/opt/libusb-compat
-ln -s -f ${PRODUCT_HOME}/${LIBUSB_DIR} /usr/local/opt/libusb
+ln -s -f ${PRODUCT_HOME}/libusb-compat ${OPT}
+ln -s -f ${PRODUCT_HOME}/libusb ${OPT}
+ln -s -f ${PRODUCT_HOME}/libftdi ${OPT}
+ln -s -f ${PRODUCT_HOME}/hidapi ${OPT}
+ln -s -f ${PRODUCT_HOME}/capstone ${OPT}
 
 echo "Post installation process finished"

@@ -51,12 +51,24 @@ bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/openocd/bin) | sed 's/[^ ]*
 rm -f $bin_files
 bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/libusb-compat/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
 rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/libftdi/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/hidapi/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
+bin_files=$(echo $(ls /Library/${PRODUCT}/${VERSION}/capstone/bin) | sed 's/[^ ]* */\/usr\/local\/bin\/&/g')
+rm -f $bin_files
 
 rm -f /usr/local/share/openocd
 rm -f /usr/local/opt/libusb
 rm -f /usr/local/opt/libusb-compat
+rm -f /usr/local/opt/libftdi
+rm -f /usr/local/opt/hidapi
+rm -f /usr/local/opt/capstone
 rm -f /usr/local/include/libusb
 rm -f /usr/local/include/libusb-compat
+rm -f /usr/local/include/libftdi
+rm -f /usr/local/include/hidapi
+rm -f /usr/local/include/capstone
 echo "[1/3] [DONE] Successfully deleted shortcut links"
 
 
