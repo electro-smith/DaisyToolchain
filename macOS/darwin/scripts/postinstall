@@ -26,7 +26,7 @@ ln -s -f ${PRODUCT_HOME}/hidapi/bin/* ${BIN}
 ln -s -f ${PRODUCT_HOME}/capstone/bin/* ${BIN}
 
 #Sharing is caring
-ln -s -f ${PRODUCT_HOME}/openocd/share ${SHARE}
+ln -s -f ${PRODUCT_HOME}/openocd/openocd ${SHARE}
 
 #Include
 ln -s -f ${PRODUCT_HOME}/libusb-compat/include ${INCLUDE}
