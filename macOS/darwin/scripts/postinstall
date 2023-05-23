@@ -10,6 +10,13 @@ PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
 
 echo "Post installation process started"
 
+# In the unlikely event that any of these system folders
+# don't exist yet, we'll create them
+mkdir -p ${BIN}
+mkdir -p ${INCLUDE}
+mkdir -p ${OPT}
+mkdir -p ${SHARE}
+
 #Change permissions in home directory
 echo "Change permissions in product home"
 cd ${PRODUCT_HOME}
