@@ -1,0 +1,39 @@
+{
+  "homebrew_version": "2.2.15-35-g11f50cf",
+  "used_options": [
+
+  ],
+  "unused_options": [
+
+  ],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "installed_as_dependency": true,
+  "installed_on_request": false,
+  "changed_files": [
+    "INSTALL_RECEIPT.json",
+    "lib/pkgconfig/capstone.pc"
+  ],
+  "time": 1619576320,
+  "source_modified_time": 1588932210,
+  "compiler": "clang",
+  "aliases": [
+
+  ],
+  "runtime_dependencies": [
+
+  ],
+  "source": {
+    "spec": "stable",
+    "versions": {
+      "stable": "4.0.2",
+      "head": null,
+      "version_scheme": 0
+    },
+    "path": "/usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/capstone.rb",
+    "tap_git_head": "58bac2f622d827c05c87c6b1d8df05fda0ae7b4e",
+    "tap": "homebrew/core"
+  },
+  "arch": "x86_64",
+  "built_on": null
+}

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+BIN=/usr/local/bin/
+INCLUDE=/usr/local/include/
+OPT=/usr/local/opt/
+SHARE=/usr/local/share/
+
+#Parameters
+PRODUCT_HOME=/Library/__PRODUCT__/__VERSION__
+
+echo "Post installation process started"
+
+# In the unlikely event that any of these system folders
+# don't exist yet, we'll create them
+mkdir -p ${BIN}
+mkdir -p ${INCLUDE}
+mkdir -p ${OPT}
+mkdir -p ${SHARE}
+
+#Change permissions in home directory
+echo "Change permissions in product home"
+cd ${PRODUCT_HOME}
+chmod -R 755 .
+[ -d /usr/local/bin ] || mkdir ${BIN}
+
+#Add application shortcuts to /usr/local/bin
+ln -s -f ${PRODUCT_HOME}/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/arm/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/openocd/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/libusb-compat/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/libfdti/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/hidapi/bin/* ${BIN}
+ln -s -f ${PRODUCT_HOME}/capstone/bin/* ${BIN}
+
+#Sharing is caring
+ln -s -f ${PRODUCT_HOME}/openocd/openocd ${SHARE}
+
+#Include
+ln -s -f ${PRODUCT_HOME}/libusb-compat/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/libusb/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/libftdi/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/hidapi/include ${INCLUDE}
+ln -s -f ${PRODUCT_HOME}/capstone/include ${INCLUDE}
+
+#Opt
+ln -s -f ${PRODUCT_HOME}/libusb-compat ${OPT}
+ln -s -f ${PRODUCT_HOME}/libusb ${OPT}
+ln -s -f ${PRODUCT_HOME}/libftdi ${OPT}
+ln -s -f ${PRODUCT_HOME}/hidapi ${OPT}
+ln -s -f ${PRODUCT_HOME}/capstone ${OPT}
+
+echo "Post installation process finished"

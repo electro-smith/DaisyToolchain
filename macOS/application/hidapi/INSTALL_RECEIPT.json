@@ -1,0 +1,45 @@
+{
+  "homebrew_version": "3.3.9-110-gbd7e26b",
+  "used_options": [
+
+  ],
+  "unused_options": [
+
+  ],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "installed_as_dependency": true,
+  "installed_on_request": false,
+  "changed_files": [
+    "lib/pkgconfig/hidapi.pc"
+  ],
+  "time": 1645811096,
+  "source_modified_time": 1641214390,
+  "compiler": "clang",
+  "aliases": [
+
+  ],
+  "runtime_dependencies": [
+
+  ],
+  "source": {
+    "spec": "stable",
+    "versions": {
+      "stable": "0.11.2",
+      "head": null,
+      "version_scheme": 0
+    },
+    "path": "/usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/hidapi.rb",
+    "tap_git_head": "5777876f836e1d657f616f5f747c23d1e8ed78c9",
+    "tap": "homebrew/core"
+  },
+  "arch": "x86_64",
+  "built_on": {
+    "os": "Macintosh",
+    "os_version": "macOS 10.15.7",
+    "cpu_family": "penryn",
+    "xcode": "12.4",
+    "clt": "12.0.0.32.29",
+    "preferred_perl": "5.18"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "homebrew_version": "3.0.1-122-gcdaf5cc",
+  "used_options": [
+
+  ],
+  "unused_options": [
+
+  ],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "installed_as_dependency": false,
+  "installed_on_request": true,
+  "changed_files": [
+    "bin/libftdi1-config",
+    "INSTALL_RECEIPT.json",
+    "lib/cmake/libftdi1/LibFTDI1Config.cmake",
+    "lib/pkgconfig/libftdi1.pc",
+    "lib/pkgconfig/libftdipp1.pc"
+  ],
+  "time": 1673641625,
+  "source_modified_time": 1594150375,
+  "stdlib": "libcxx",
+  "compiler": "clang",
+  "aliases": [
+
+  ],
+  "runtime_dependencies": [
+    {
+      "full_name": "icu4c",
+      "version": "70.1",
+      "declared_directly": false
+    },
+    {
+      "full_name": "xz",
+      "version": "5.2.5",
+      "declared_directly": false
+    },
+    {
+      "full_name": "lz4",
+      "version": "1.9.3",
+      "declared_directly": false
+    },
+    {
+      "full_name": "zstd",
+      "version": "1.5.2",
+      "declared_directly": false
+    },
+    {
+      "full_name": "boost",
+      "version": "1.79.0",
+      "declared_directly": true
+    },
+    {
+      "full_name": "confuse",
+      "version": "3.3",
+      "declared_directly": true
+    },
+    {
+      "full_name": "libusb",
+      "version": "1.0.26",
+      "declared_directly": true
+    }
+  ],
+  "source": {
+    "spec": "stable",
+    "versions": {
+      "stable": "1.5",
+      "head": null,
+      "version_scheme": 0
+    },
+    "path": "/usr/local/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/libftdi.rb",
+    "tap_git_head": "a986115b641b03f8cc7f3a8d7299b59a7030336b",
+    "tap": "homebrew/core"
+  },
+  "arch": "x86_64",
+  "built_on": {
+    "os": "Macintosh",
+    "os_version": "macOS 10.15.7",
+    "cpu_family": "penryn",
+    "xcode": "12.4",
+    "clt": "12.4.0.0.1.1610135815"
+  }
+}
